@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-ocean-deep text-white font-sans">
+  <div class="flex flex-col min-h-screen bg-ocean-deep text-white font-sans">
     <!-- 导航栏 -->
     <header class="bg-ocean-medium/80 backdrop-blur-md sticky top-0 left-0 right-0 z-50 border-b border-white/5">
       <nav class="container mx-auto px-4 py-3">
@@ -14,15 +14,27 @@
           
           <!-- 桌面导航 -->
           <div class="flex items-center space-x-1">
-            <router-link 
-              v-for="item in navItems" 
-              :key="item.path"
-              :to="item.path" 
-              class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-200"
-              active-class="text-sea-green bg-sea-green/10"
-            >
-              {{ item.name }}
-            </router-link>
+            <template v-for="item in navItems" :key="item.path">
+              <div v-if="item.name === '帮助与支持'" class="relative" @mouseenter="isHelpDropdownOpen = true" @mouseleave="isHelpDropdownOpen = false">
+                <button class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-200">
+                  {{ item.name }} <span class="ml-1">▼</span>
+                </button>
+                <div v-if="isHelpDropdownOpen" class="absolute left-0 mt-2 w-48 bg-ocean-medium rounded-md shadow-lg z-20">
+                  <router-link to="/faq" class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">常见问题</router-link>
+                  <router-link to="/volunteer-guide" class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">志愿者指南</router-link>
+                  <router-link to="/privacy-policy" class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">隐私政策</router-link>
+                  <router-link to="/terms-of-service" class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white">服务条款</router-link>
+                </div>
+              </div>
+              <router-link 
+                v-else
+                :to="item.path" 
+                class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-200"
+                active-class="text-sea-green bg-sea-green/10"
+              >
+                {{ item.name }}
+              </router-link>
+            </template>
           </div>
           
           <!-- 右侧按钮组 -->
@@ -35,14 +47,14 @@
     </header>
     
     <!-- 主内容区 -->
-    <main class="min-h-screen flex flex-col">
+    <main class="flex-grow flex flex-col">
       <slot></slot>
     </main>
     
     <!-- 页脚 -->
-    <footer class="bg-ocean-dark border-t border-white/5 pt-16 pb-8">
+    <footer :class="['bg-ocean-dark border-t border-white/5', route.path === '/' ? 'pt-16 pb-8' : 'py-6']">
       <div class="container mx-auto px-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+        <div v-if="route.path === '/'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           <!-- 品牌信息 -->
           <div class="space-y-4">
             <div class="flex items-center space-x-2">
@@ -56,27 +68,7 @@
             </p>
           </div>
           
-          <!-- 快速链接 -->
-          <div>
-            <h3 class="text-white font-semibold mb-6">平台功能</h3>
-            <ul class="space-y-3">
-              <li><router-link to="/map" class="text-gray-400 hover:text-sea-green transition-colors text-sm">回收点地图</router-link></li>
-              <li><router-link to="/checkin" class="text-gray-400 hover:text-sea-green transition-colors text-sm">智能识别打卡</router-link></li>
-              <li><router-link to="/blockchain" class="text-gray-400 hover:text-sea-green transition-colors text-sm">区块链溯源</router-link></li>
-              <li><router-link to="/mall" class="text-gray-400 hover:text-sea-green transition-colors text-sm">绿色积分商城</router-link></li>
-            </ul>
-          </div>
-          
-          <!-- 帮助支持 -->
-          <div>
-            <h3 class="text-white font-semibold mb-6">帮助与支持</h3>
-            <ul class="space-y-3">
-              <li><a href="#" class="text-gray-400 hover:text-sea-green transition-colors text-sm">常见问题</a></li>
-              <li><a href="#" class="text-gray-400 hover:text-sea-green transition-colors text-sm">志愿者指南</a></li>
-              <li><a href="#" class="text-gray-400 hover:text-sea-green transition-colors text-sm">隐私政策</a></li>
-              <li><a href="#" class="text-gray-400 hover:text-sea-green transition-colors text-sm">服务条款</a></li>
-            </ul>
-          </div>
+
           
           <!-- 订阅/关注 -->
           <div>
@@ -95,7 +87,7 @@
           </div>
         </div>
         
-        <div class="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between">
+        <div :class="['flex flex-col md:flex-row items-center justify-between', route.path === '/' ? 'border-t border-white/5 pt-8' : '']">
           <p class="text-gray-500 text-sm">© 2025 海洋塑料回收公益项目. All rights reserved.</p>
           <div class="mt-4 md:mt-0 flex space-x-6">
             <span class="text-gray-600 text-sm">Designed for Earth</span>
@@ -108,6 +100,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const isHelpDropdownOpen = ref(false)
 
 const navItems = [
   { name: '首页', path: '/' },
@@ -118,5 +114,6 @@ const navItems = [
   { name: '积分商城', path: '/mall' },
   { name: '科普专区', path: '/science' },
   { name: '志愿者社区', path: '/community' },
+  { name: '帮助与支持', path: '/help' },
 ]
 </script>
