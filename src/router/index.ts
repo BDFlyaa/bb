@@ -1,59 +1,57 @@
-import { createRouter, createWebHistory } from 'vue-router'
+// src/router/index.ts
+import { createRouter, createWebHistory } from 'vue-router';
+import { store } from '../stores';
+
+import Login from '../pages/auth/Login.vue';
+import Register from '../pages/auth/Register.vue';
+import MainLayout from '../layouts/MainLayout.vue';
+import Home from '../pages/Home.vue';
+import Statistics from '../pages/stats/Statistics.vue'; // 首页大屏
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
     {
+      path: '/login',
+      name: 'Login',
+      component: Login
+    },
+    {
+      path: '/register',
+      name: 'Register',
+      component: Register
+    },
+    {
       path: '/',
-      name: 'home',
-      component: () => import('../pages/Home.vue')
+      name: 'Home',
+      component: Home
     },
     {
-      path: '/auth/login',
-      name: 'login',
-      component: () => import('../pages/auth/Login.vue')
-    },
-    {
-      path: '/auth/register',
-      name: 'register',
-      component: () => import('../pages/auth/Register.vue')
-    },
-    {
-      path: '/map',
-      name: 'map',
-      component: () => import('../pages/map/MapView.vue')
-    },
-    {
-      path: '/checkin',
-      name: 'checkin',
-      component: () => import('../pages/checkin/Checkin.vue')
-    },
-    {
-      path: '/blockchain',
-      name: 'blockchain',
-      component: () => import('../pages/blockchain/Traceability.vue')
-    },
-    {
-      path: '/stats',
-      name: 'stats',
-      component: () => import('../pages/stats/Statistics.vue')
-    },
-    {
-      path: '/mall',
-      name: 'mall',
-      component: () => import('../pages/mall/Mall.vue')
-    },
-    {
-      path: '/science',
-      name: 'science',
-      component: () => import('../pages/science/Science.vue')
-    },
-    {
-      path: '/community',
-      name: 'community',
-      component: () => import('../pages/community/Community.vue')
+      path: '/app',
+      component: MainLayout,
+      children: [
+        { path: '', redirect: '/app/stats' },
+        { path: 'stats', component: Statistics },
+        { path: 'map', component: () => import('../pages/map/MapView.vue') },
+        { path: 'checkin', component: () => import('../pages/checkin/Checkin.vue') },
+        { path: 'blockchain', component: () => import('../pages/blockchain/Traceability.vue') },
+        { path: 'mall', component: () => import('../pages/mall/Mall.vue') },
+        { path: 'community', component: () => import('../pages/community/Community.vue') },
+      ]
     }
   ]
-})
+});
 
-export default router
+// 简单的路由守卫
+router.beforeEach((to, from, next) => {
+  const publicPages = ['/', '/login', '/register'];
+  const authRequired = !publicPages.includes(to.path);
+  
+  if (authRequired && !store.isLoggedIn) {
+    next('/login');
+  } else {
+    next();
+  }
+});
+
+export default router;

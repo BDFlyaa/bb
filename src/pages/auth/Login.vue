@@ -1,114 +1,102 @@
 <template>
-  <div class="min-h-screen bg-ocean-deep flex items-center justify-center p-4 relative overflow-hidden">
-    <!-- 背景动画 -->
-    <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-      <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-sea-green/20 rounded-full blur-[100px] animate-pulse-slow"></div>
-      <div class="absolute top-[60%] -right-[10%] w-[40%] h-[60%] bg-wave-blue/20 rounded-full blur-[100px] animate-pulse-slow" style="animation-delay: 1s;"></div>
-    </div>
-
-    <div class="relative w-full max-w-md z-10">
-      <!-- 登录卡片 -->
-      <div class="relative bg-ocean-medium/40 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/10">
-        <!-- 返回首页 -->
-        <router-link to="/" class="absolute top-6 left-6 text-gray-400 hover:text-white transition-colors">
-          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-        </router-link>
-
-        <div class="text-center mb-10">
-          <div class="w-20 h-20 bg-gradient-to-br from-sea-green to-sea-green-dark rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-sea-green/20 transform rotate-3">
-            <span class="text-4xl font-bold text-white">海</span>
-          </div>
-          <h1 class="text-3xl font-bold text-white tracking-wide">欢迎回来</h1>
-          <p class="text-gray-400 mt-3 text-sm">登录以继续您的环保之旅</p>
-        </div>
-        
-        <!-- 登录表单 -->
-        <form @submit.prevent="handleLogin">
-          <div class="space-y-6">
-            <!-- 用户名/邮箱 -->
-            <div>
-              <label for="username" class="block text-sm font-medium text-gray-300 mb-2 ml-1">用户名或邮箱</label>
-              <div class="relative">
-                <input
-                  type="text"
-                  id="username"
-                  v-model="form.username"
-                  class="w-full px-5 py-3.5 bg-ocean-dark/50 border border-white/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-sea-green/50 focus:border-sea-green/50 text-white placeholder-gray-500 transition-all"
-                  placeholder="请输入用户名或邮箱"
-                  required
-                />
-              </div>
-            </div>
-            
-            <!-- 密码 -->
-            <div>
-              <div class="flex justify-between items-center mb-2 ml-1">
-                <label for="password" class="block text-sm font-medium text-gray-300">密码</label>
-                <a href="#" class="text-xs text-sea-green hover:text-sea-green-light transition-colors">忘记密码？</a>
-              </div>
-              <input
-                type="password"
-                id="password"
-                v-model="form.password"
-                class="w-full px-5 py-3.5 bg-ocean-dark/50 border border-white/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-sea-green/50 focus:border-sea-green/50 text-white placeholder-gray-500 transition-all"
-                placeholder="请输入密码"
-                required
-              />
-            </div>
-            
-            <!-- 记住我 -->
-            <div class="flex items-center ml-1">
-              <input
-                type="checkbox"
-                id="remember"
-                v-model="form.remember"
-                class="w-4 h-4 bg-ocean-dark border border-white/10 rounded focus:ring-sea-green text-sea-green"
-              />
-              <label for="remember" class="ml-2 text-sm text-gray-400">记住我</label>
-            </div>
-            
-            <!-- 登录按钮 -->
-            <button
-              type="submit"
-              class="w-full py-3.5 bg-gradient-to-r from-sea-green to-sea-green-dark hover:from-sea-green-light hover:to-sea-green text-white font-bold rounded-xl shadow-lg shadow-sea-green/20 hover:shadow-sea-green/40 transition-all duration-300 transform hover:-translate-y-0.5"
-            >
-              登 录
-            </button>
-          </div>
-          
-          <!-- 注册链接 -->
-          <div class="text-center mt-8 pt-6 border-t border-white/5">
-            <p class="text-gray-400 text-sm">
-              还没有账号？ 
-              <router-link to="/auth/register" class="text-sea-green font-semibold hover:text-sea-green-light transition-colors ml-1">
-                立即注册
-              </router-link>
-            </p>
-          </div>
-        </form>
+  <div class="auth-container fade-in">
+    <router-link to="/" class="back-home-btn" title="返回首页">返回首页</router-link>
+    <div class="auth-card glass-panel">
+      <div class="auth-header">
+        <img src="../../assets/images/logo.png" alt="PureOcean Logo" class="auth-logo" />
+        <h1>PureOcean ID</h1>
       </div>
+      <div class="tabs">
+        <span class="active">登录</span>
+      </div>
+      <form @submit.prevent="submitLogin">
+        <div class="input-group">
+          <input type="text" placeholder="用户名 (admin/user)" v-model="form.username" required>
+        </div>
+        <div class="input-group">
+          <input type="password" placeholder="密码" v-model="form.password">
+        </div>
+        <div class="input-group">
+            <select v-model="form.role">
+              <option value="volunteer">普通志愿者</option>
+              <option value="recycle_admin">回收站管理员</option>
+              <option value="system_admin">系统管理员</option>
+            </select>
+          </div>
+        <button type="submit" class="btn-primary full-width">进入系统</button>
+        <div class="auth-footer">
+          <p>没有账号？ <router-link to="/register">立即注册</router-link></p>
+        </div>
+      </form>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { reactive } from 'vue';
+import { store } from '../../stores';
+import { useRouter } from 'vue-router';
 
-const router = useRouter()
+const router = useRouter();
+const form = reactive({ username: '', password: '', role: 'volunteer' });
 
-const form = ref({
-  username: '',
-  password: '',
-  remember: false
-})
-
-const handleLogin = () => {
-  // 这里将实现登录逻辑
-  console.log('登录表单提交:', form.value)
-  // 临时跳转到首页
-  router.push('/')
-}
+const submitLogin = async () => {
+  const result = await store.login(form.username, form.password);
+  if (result.success) {
+    router.push('/app/stats');
+  } else {
+    alert(result.message);
+  }
+};
 </script>
+
+<style scoped>
+.auth-container { height: 100vh; display: flex; align-items: center; justify-content: center; z-index: 10; position: relative; }
+.auth-card { width: 350px; padding: 2rem; text-align: center; }
+.auth-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+.auth-logo {
+  height: 80px;
+  width: auto;
+  object-fit: contain;
+}
+.auth-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+.tabs { margin-bottom: 1.5rem; }
+.tabs .active { color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 5px; font-weight: bold; }
+.input-group input, .input-group select { width: 100%; margin-bottom: 1rem; padding: 10px; background: rgba(0,0,0,0.2); border: none; color: white; border-radius: 6px; box-sizing: border-box; }
+.input-group select option { background: #001f3f; color: white; }
+.full-width { width: 100%; }
+.auth-footer { margin-top: 1.5rem; font-size: 0.9rem; color: rgba(255, 255, 255, 0.7); }
+.auth-footer a { color: var(--accent); text-decoration: none; }
+.auth-footer a:hover { text-decoration: underline; }
+
+.back-home-btn {
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  padding: 8px 20px;
+  background: linear-gradient(90deg, #00b4db, #0083b0);
+  color: white;
+  border-radius: 20px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  z-index: 100;
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 180, 219, 0.3);
+}
+
+.back-home-btn:hover {
+  background: linear-gradient(90deg, #00d4ff, #00b4db);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 180, 219, 0.4);
+}
+</style>

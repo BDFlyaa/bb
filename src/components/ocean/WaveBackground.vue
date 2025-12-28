@@ -1,51 +1,37 @@
 <template>
-  <div class="relative w-full h-full overflow-hidden">
-    <!-- 背景渐变 -->
-    <div class="absolute inset-0 bg-gradient-to-b from-ocean-deep to-ocean-light"></div>
-    
-    <!-- 水波纹效果 -->
-    <div class="absolute inset-0 opacity-20">
-      <div class="wave wave-1"></div>
-      <div class="wave wave-2"></div>
-      <div class="wave wave-3"></div>
-    </div>
+  <div class="ocean-bg">
+    <div class="water-ripple"></div>
+    <div v-for="n in 15" :key="n" class="plastic-particle" :style="getParticleStyle()"></div>
   </div>
 </template>
 
+<script setup lang="ts">
+const getParticleStyle = () => {
+  return {
+    left: Math.random() * 100 + '%',
+    animationDelay: Math.random() * 5 + 's',
+    animationDuration: (Math.random() * 10 + 10) + 's',
+    opacity: Math.random() * 0.5
+  };
+};
+</script>
+
 <style scoped>
-.wave {
+.ocean-bg {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+.plastic-particle {
   position: absolute;
-  left: 0;
-  width: 200%;
-  height: 100%;
-  background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJwYXR0ZXJuIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMxRTI5M0IiLz48cGF0aCBkPSJNNTAgMjBDNzAgMjAgODAgMzAgODAgNTBDODAgNzAgNzAgODAgNTAgODBDMzAgODAgMjAgNzAgMjAgNTBDMjAgMzAgMzAgMjAgNTAgMjBaTTIwIDUwQzIwIDMwIDMwIDIwIDUwIDIwQzcwIDIwIDgwIDMwIDgwIDUwQzgwIDcwIDcwIDgwIDUwIDUwQzMwIDUwIDIwIDMwIDIwIDUwWiIgZmlsbD0iIzEwQjk4MSIgZmlsbC1vcGFjaXR5PSIwLjEiLz48cGF0aCBkPSJNODAgNTBDODAgMzAgOTAgMjAgMTEwIDIwQzEzMCAyMCAxNDAgMzAgMTQwIDUwQzE0MCA3MCAxMzAgODAgMTEwIDgwQzkwIDgwIDgwIDcwIDgwIDUwWiIgZmlsbD0iIzMwODJGNiIgZmlsbC1vcGFjaXR5PSIwLjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjcGF0dGVybikiLz48L3N2Zz4=') repeat-x;
-  background-size: 50% 100%;
+  bottom: -50px;
+  width: 20px; height: 20px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  animation: floatUp linear infinite;
 }
-
-.wave-1 {
-  animation: wave-animation 20s linear infinite;
-  bottom: 0;
-  height: 30%;
-}
-
-.wave-2 {
-  animation: wave-animation 30s linear infinite reverse;
-  bottom: 10%;
-  height: 25%;
-}
-
-.wave-3 {
-  animation: wave-animation 25s linear infinite;
-  bottom: 20%;
-  height: 20%;
-}
-
-@keyframes wave-animation {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+@keyframes floatUp {
+  to { transform: translateY(-120vh) rotate(360deg); }
 }
 </style>

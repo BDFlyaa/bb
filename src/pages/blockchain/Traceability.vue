@@ -1,159 +1,169 @@
 <template>
-  <MainLayout>
-    <h1 class="text-3xl font-bold mb-6">区块链溯源</h1>
+  <div class="traceability-view">
+    <h2>🔗 区块链溯源记录</h2>
     
-    <div class="grid grid-cols-1 grid-cols-3 gap-6">
-      <!-- 左侧查询区域 -->
-      <div class="col-span-1 bg-ocean-light rounded-xl p-6 border border-ocean-deep/50">
-        <h2 class="text-xl font-semibold mb-4">查询回收记录</h2>
-        
-        <div class="space-y-4">
-          <div>
-            <label for="hash" class="block text-sm font-medium text-gray-300 mb-2">哈希值</label>
-            <input 
-              type="text" 
-              id="hash" 
-              v-model="searchHash" 
-              placeholder="请输入哈希值" 
-              class="w-full px-4 py-3 bg-ocean-deep border border-ocean-deep/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sea-green text-white"
-            >
-          </div>
-          
-          <button 
-            class="w-full bg-sea-green hover:bg-sea-green/80 text-white font-semibold py-3 rounded-lg transition-colors"
-            @click="searchRecord"
-          >
-            查询
-          </button>
-          
-          <div class="mt-6">
-            <h3 class="text-lg font-medium mb-3">最近记录</h3>
-            <div class="space-y-3">
-              <div 
-                v-for="record in recentRecords" 
-                :key="record.id" 
-                class="bg-ocean-deep rounded-lg p-3 cursor-pointer hover:bg-ocean-deep/80 transition-colors"
-                @click="searchHash = record.hash"
-              >
-                <div class="text-sm font-medium">{{ record.name }}</div>
-                <div class="text-xs text-gray-400 truncate">{{ record.hash }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div class="search-section glass-panel">
+      <div class="search-box">
+        <input 
+          type="text" 
+          v-model="searchQuery" 
+          placeholder="输入哈希值或批次号查询溯源信息..."
+          @keyup.enter="handleSearch"
+        >
+        <button class="btn-primary" @click="handleSearch">🔍 查询</button>
+      </div>
+    </div>
+
+    <div class="blockchain-list glass-panel">
+      <div v-if="filteredData.length === 0" class="no-data">
+        没有找到相关记录
       </div>
       
-      <!-- 右侧结果展示 -->
-      <div class="col-span-2">
-        <div v-if="blockchainRecord" class="bg-ocean-light rounded-xl p-6 border border-ocean-deep/50">
-          <h2 class="text-xl font-semibold mb-4">溯源结果</h2>
-          
-          <div class="space-y-4">
-            <!-- 基本信息 -->
-            <div class="bg-ocean-deep rounded-lg p-4">
-              <h3 class="font-medium mb-2">基本信息</h3>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <div class="text-sm text-gray-400">哈希值</div>
-                  <div class="font-mono text-sm break-all">{{ blockchainRecord.hash }}</div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-400">区块高度</div>
-                  <div>{{ blockchainRecord.blockHeight }}</div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-400">时间戳</div>
-                  <div>{{ blockchainRecord.timestamp }}</div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-400">状态</div>
-                  <div class="text-sea-green">✅ 已确认</div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 回收信息 -->
-            <div class="bg-ocean-deep rounded-lg p-4">
-              <h3 class="font-medium mb-2">回收信息</h3>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <div class="text-sm text-gray-400">回收类型</div>
-                  <div>{{ blockchainRecord.recycleType }}</div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-400">重量</div>
-                  <div>{{ blockchainRecord.weight }} kg</div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-400">回收地点</div>
-                  <div>{{ blockchainRecord.location }}</div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-400">回收人</div>
-                  <div>{{ blockchainRecord.recycler }}</div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 处理信息 -->
-            <div class="bg-ocean-deep rounded-lg p-4">
-              <h3 class="font-medium mb-2">处理信息</h3>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <div class="text-sm text-gray-400">处理状态</div>
-                  <div>{{ blockchainRecord.processStatus }}</div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-400">处理时间</div>
-                  <div>{{ blockchainRecord.processTime }}</div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-400">处理机构</div>
-                  <div>{{ blockchainRecord.processOrg }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div class="chain-item" v-for="(block, i) in filteredData" :key="i">
+        <div class="item-header">
+          <span class="batch-id">📦 {{ block.batch }}</span>
+          <span class="status-verified">✅ 已上链 Verified</span>
         </div>
         
-        <div v-else class="bg-ocean-light rounded-xl p-16 text-center border border-ocean-deep/50">
-          <div class="text-6xl mb-4">🔗</div>
-          <h3 class="text-xl font-semibold mb-2">暂无查询结果</h3>
-          <p class="text-gray-400">请输入哈希值查询回收记录</p>
+        <div class="hash-row">
+          <span class="label">Hash:</span>
+          <span class="hash-value">{{ block.hash }}</span>
+        </div>
+        
+        <div class="meta-info">
+          <span>⏱️ 时间戳: {{ block.time }}</span>
+          <span>⚖️ 重量: {{ block.weight }}</span>
+          <span>📍 来源: {{ block.source }}</span>
         </div>
       </div>
     </div>
-  </MainLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import MainLayout from '../../layouts/MainLayout.vue'
+import { ref, computed } from 'vue';
 
-const searchHash = ref('')
-const blockchainRecord = ref<any>(null)
-
-// 最近记录
-const recentRecords = ref([
-  { id: 1, name: '回收记录 #1', hash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' },
-  { id: 2, name: '回收记录 #2', hash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890' },
-  { id: 3, name: '回收记录 #3', hash: '0x90abcdef1234567890abcdef1234567890abcdef1234567890abcdef12345678' }
-])
-
-// 查询记录
-const searchRecord = () => {
-  // 模拟查询结果
-  blockchainRecord.value = {
-    hash: searchHash.value || '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-    blockHeight: 123456,
-    timestamp: '2025-12-10 15:30:00',
-    recycleType: '塑料瓶',
-    weight: 0.5,
-    location: '上海市浦东新区张江高科技园区',
-    recycler: '志愿者A',
-    processStatus: '已处理',
-    processTime: '2025-12-10 16:00:00',
-    processOrg: '海洋塑料回收中心'
-  }
+// 模拟数据接口
+interface BlockData {
+  hash: string;
+  batch: string;
+  time: string;
+  weight: string;
+  source: string;
 }
+
+const searchQuery = ref('');
+
+// 模拟区块链数据
+const blockchainData = ref<BlockData[]>([
+  { 
+    hash: '0x7f9a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a', 
+    batch: 'B-20231024-01', 
+    time: '2023-10-24 10:42:15',
+    weight: '50.5 kg',
+    source: '站点 A - 阳光海滩'
+  },
+  { 
+    hash: '0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d', 
+    batch: 'B-20231024-02', 
+    time: '2023-10-24 11:15:30',
+    weight: '120.0 kg',
+    source: '站点 C - 河口拦截网'
+  },
+  { 
+    hash: '0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0', 
+    batch: 'B-20231025-01', 
+    time: '2023-10-25 09:20:00',
+    weight: '35.2 kg',
+    source: '站点 B - 社区回收站'
+  },
+]);
+
+// 简单的过滤逻辑
+const filteredData = computed(() => {
+  if (!searchQuery.value) return blockchainData.value;
+  const q = searchQuery.value.toLowerCase();
+  return blockchainData.value.filter(item => 
+    item.hash.toLowerCase().includes(q) || 
+    item.batch.toLowerCase().includes(q)
+  );
+});
+
+const handleSearch = () => {
+  // 实际项目中这里会调用 API
+  console.log('Searching for:', searchQuery.value);
+};
 </script>
+
+<style scoped>
+.search-section {
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.search-box {
+  display: flex;
+  gap: 10px;
+}
+.search-box input {
+  flex: 1;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #444;
+  color: white;
+  border-radius: 6px;
+  outline: none;
+}
+.search-box input:focus {
+  border-color: #00b4db;
+}
+
+.blockchain-list {
+  padding: 20px;
+}
+
+.chain-item {
+  padding: 15px;
+  border-left: 3px solid #00b4db;
+  background: rgba(255, 255, 255, 0.05);
+  margin-bottom: 15px;
+  border-radius: 0 8px 8px 0;
+  transition: background 0.3s;
+}
+.chain-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.batch-id { font-weight: bold; font-size: 1.1rem; color: #fff; }
+.status-verified { color: #4ade80; font-size: 0.9rem; background: rgba(74, 222, 128, 0.1); padding: 2px 8px; border-radius: 4px; }
+
+.hash-row {
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  word-break: break-all;
+  font-size: 0.85rem;
+}
+.hash-row .label { color: #888; margin-right: 10px; }
+.hash-row .hash-value { color: #00b4db; }
+
+.meta-info {
+  display: flex;
+  gap: 20px;
+  font-size: 0.85rem;
+  color: #aaa;
+  flex-wrap: wrap;
+}
+
+.no-data {
+  text-align: center;
+  color: #888;
+  padding: 20px;
+}
+</style>

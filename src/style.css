@@ -1,167 +1,45 @@
-/* 1. 引入高质量现代字体 Inter */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+/* src/style.css */
 :root {
-  /* 覆盖默认字体栈 */
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  /* 强制暗色模式渲染 */
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.9);
-  /* 对应 config 中的 ocean-deep */
-  background-color: #020617; 
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --deep-bg: #001f3f;
+  --panel-bg: rgba(255, 255, 255, 0.1);
+  --accent: #00b4db;
+  --text: #ffffff;
 }
 
 body {
   margin: 0;
-  min-width: 320px;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  color: white;
+  background: linear-gradient(135deg, #021B32 0%, #004e92 100%);
   min-height: 100vh;
   overflow-x: hidden;
-  background-color: #020617; /* Fallback color */
-  background-image: url('/src/assets/images/2.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  /* 全局环境光：顶部微弱的深蓝光，模拟深海透光 */
-  background-image:
-    linear-gradient(rgba(2, 6, 23, 0.7), rgba(2, 6, 23, 0.7)), /* 添加一层半透明的深色叠加 */
-    url('/src/assets/images/2.jpg');
 }
 
-#app {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-/* --- 全局 UI 增强 --- */
-
-/* 1. 自定义滚动条 (让滚动条融入深海主题) */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #0B1120; 
-}
-
-::-webkit-scrollbar-thumb {
-  background: #334155; 
-  border-radius: 4px;
-  transition: background 0.3s;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #10B981; /* 悬停时变为海洋绿 */
-}
-
-/* 2. 选中文本高亮颜色 */
-::selection {
-  background-color: rgba(16, 185, 129, 0.3);
-  color: #fff;
-}
-
-/* 3. 基础交互增强 */
-a, button {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 200ms;
-}
-
-/* --- 导航栏深度优化 (无需修改 Vue) --- */
-
-/* 1. 极致磨砂玻璃 Header */
-/* 劫持 header.bg-ocean-medium/80 类 */
-header.bg-ocean-medium\/80 {
-  background-color: rgba(2, 6, 23, 0.65) !important; /* 更透明 */
-  backdrop-filter: blur(20px) saturate(180%) !important; /* iOS 风格高级模糊 */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important; /* 细腻分割线 */
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2); /* 立体投影 */
-}
-
-/* 2. Logo 呼吸灯特效 */
-/* 选中 Logo 容器中的图标盒子 */
-a.group .bg-gradient-to-br {
-  animation: logo-breathe 4s ease-in-out infinite;
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
-}
-
-@keyframes logo-breathe {
-  0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
-  50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.6); }
-}
-
-/* 3. 导航菜单项 (Desktop) */
-/* 基础样式重置 */
-nav a.text-gray-300, 
-nav button.text-gray-300 {
-  position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* 悬停态：玻璃微光按钮 */
-nav a.hover\:bg-white\/5:hover,
-nav button.hover\:bg-white\/5:hover {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  color: #fff !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15); 
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-}
-
-/* 激活态 (Active)：高科技荧光绿 */
-/* 对应 Vue 中的 active-class */
-.text-sea-green.bg-sea-green\/10 {
-  background-color: rgba(16, 185, 129, 0.1) !important;
-  color: #34D399 !important; /* 更明亮的荧光绿 */
-  border-bottom: 1px solid rgba(16, 185, 129, 0.5); /* 底部发光条 */
-  box-shadow: 
-    0 4px 12px rgba(16, 185, 129, 0.15),
-    inset 0 0 20px rgba(16, 185, 129, 0.05);
-}
-
-/* 4. 下拉菜单 (Dropdown) */
-/* 对应 .absolute.bg-ocean-medium */
-.absolute.bg-ocean-medium {
-  background-color: rgba(30, 41, 59, 0.95) !important;
+/* 玻璃拟态通用类 */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
-  transform-origin: top;
-  animation: dropdown-slide 0.2s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
-@keyframes dropdown-slide {
-  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+/* 按钮通用样式 */
+.btn-primary {
+  background: linear-gradient(90deg, #00b4db, #0083b0);
+  border: none; padding: 10px 20px; color: white; border-radius: 8px; cursor: pointer;
+  transition: transform 0.2s;
 }
+.btn-primary:hover { transform: scale(1.05); }
+.btn-primary.small { padding: 5px 10px; font-size: 0.8rem; }
 
-/* 5. 注册按钮 (CTA) 强化 */
-/* 利用 href 属性精确定位注册按钮 */
-a[href*="register"] {
-  background-size: 200% 100%;
-  background-image: linear-gradient(to right, #10B981, #059669, #34D399, #10B981) !important;
-  animation: gradient-move 3s linear infinite;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* 简单的进入动画 */
+.fade-in {
+  animation: fadeIn 0.5s ease;
 }
-
-a[href*="register"]:hover {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.6) !important;
-  transform: translateY(-2px);
-}
-
-@keyframes gradient-move {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
+@keyframes fadeIn { 
+  from { opacity: 0; transform: translateY(10px); } 
+  to { opacity: 1; transform: translateY(0); } 
 }

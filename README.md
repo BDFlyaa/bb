@@ -1,45 +1,75 @@
-<<<<<<< HEAD
-# Vue 3 + TypeScript + Vite
+# PureOcean - 海洋塑料回收公益系统
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+PureOcean 是一款基于 Vue 3、Node.js 和区块链理念开发的海洋塑料回收管理系统。项目旨在通过数字化手段透明化海洋塑料回收流程，并通过科普内容提高公众环保意识。
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
-=======
-# aa
+## 🌟 项目亮点
 
-#### 介绍
-1
+- **海洋百科**：深度科普微塑料危害、海龟保护等海洋生态知识。
+- **视频科普**：集成短视频弹窗，直观展示“塑料的一生”。
+- **双端联动**：完善的前后端登录注册体系，支持 JWT 认证。
+- **玻璃拟态设计**：全站采用现代感十足的深海主题玻璃拟态 UI 设计。
 
-#### 软件架构
-软件架构说明
+## 🛠️ 技术栈
 
+### 前端
+- **框架**：Vue 3 (Composition API)
+- **构建工具**：Vite
+- **状态管理**：Pinia / Custom Store
+- **路由**：Vue Router
+- **样式**：原生 CSS (模块化管理) + 响应式布局
 
-#### 安装教程
+### 后端
+- **运行环境**：Node.js
+- **Web 框架**：Express
+- **数据库**：MySQL (通过 Sequelize ORM 连接)
+- **认证**：JSON Web Token (JWT) + bcryptjs 密码加密
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+## 🚀 快速开始
 
-#### 使用说明
+### 1. 克隆项目
+```bash
+git clone <repository-url>
+cd bs
+```
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+### 2. 后端配置
+1. 进入 `server` 目录：`cd server`
+2. 安装依赖：`npm install`
+3. 在 `server` 目录下创建 `.env` 文件，并配置你的数据库信息：
+   ```env
+   DB_HOST=localhost
+   DB_USER=root
+   DB_PASS=123456
+   DB_NAME=bysj
+   JWT_SECRET=your_secret_key
+   PORT=3000
+   ```
+4. 启动后端：`npm run dev`
 
-#### 参与贡献
+### 3. 前端配置
+1. 回到根目录：`cd ..`
+2. 安装依赖：`npm install`
+3. 启动项目：`npm run dev`
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+## 📁 目录结构
 
+- `src/` - 前端源代码
+  - `assets/` - 静态资源与样式
+  - `components/` - 通用组件
+  - `data/` - 科普文章与视频数据
+  - `pages/` - 页面组件
+  - `stores/` - 状态管理
+- `server/` - 后端源代码
+  - `models/` - 数据库模型
+  - `routes/` - API 路由
+  - `db.js` - 数据库连接配置
+  - `index.js` - 后端入口文件
 
-#### 特技
+## 🤝 参与贡献
+1. Fork 本仓库
+2. 新建 Feat_xxx 分支
+3. 提交代码
+4. 新建 Pull Request
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
->>>>>>> b2e122298b3daf8c0b711e7dec25541818f61cd4
+---
+© 2025 PureOcean 海洋塑料回收公益项目
