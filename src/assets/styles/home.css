@@ -203,7 +203,7 @@
 
 /* 游戏按钮定制 */
 .btn-game {
-  background: linear-gradient(135deg, #00b4db, #00d4ff);
+  background: linear-gradient(90deg, #00b4db, #0083b0);
   border: none;
   padding: 12px 28px;
   color: white;

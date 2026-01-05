@@ -39,7 +39,7 @@ const router = useRouter();
 
 const handleLogout = () => {
   store.logout();
-  router.push('/login');
+  router.push('/');
 };
 </script>
 
