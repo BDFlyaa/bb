@@ -1,260 +1,339 @@
 <template>
   <div class="community-view">
-    <div class="header-section">
-      <h2>👥 净滩行动广场</h2>
+    <!-- 加载遮罩 -->
+    <div v-if="logic.isLoading.value" class="loading-overlay">
+      <span class="loader"></span>
+      <p>正在同步海域动态...</p>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading-overlay">
-      <div class="loader"></div>
-      <p>正在同步海域数据...</p>
-    </div>
-
-    <div class="community-layout">
-      <!-- Left Column: Tasks -->
-      <div class="tasks-column">
-        <div class="column-header">
-          <h3>🔥 紧急任务</h3>
-        </div>
-
-        <div class="task-list">
-          <div class="task-card glass-panel" v-for="task in tasks" :key="task.id">
-            <div class="task-header">
-              <span class="task-tag">组队</span>
-              <span class="task-date">{{ task.date }}</span>
-            </div>
-            <h4>{{ task.title }}</h4>
-            <p class="task-loc">📍 {{ task.loc }}</p>
-            <div class="task-actions">
-              <button 
-                v-if="!task.isJoined" 
-                class="btn-primary small" 
-                @click="joinTask(task)"
-              >
-                加入队伍
-              </button>
-              <template v-else>
-                <button class="btn-joined small" disabled>已加入</button>
-                <button class="btn-outline small" @click="leaveTask(task)">退出队伍</button>
-              </template>
-            </div>
-          </div>
+    <!-- 志愿者视图 -->
+    <div v-if="!isAdmin">
+      <div class="header-section">
+        <div class="title-area">
+          <h2>🌱 志愿者社区</h2>
+          <p>守护蔚蓝，分享每一份环保力量</p>
         </div>
       </div>
 
-      <!-- Middle Column: Feed -->
-      <div class="feed-column">
-        <div class="feed-header-area">
-          <h3>动态圈</h3>
-          <div class="hashtags">
-            <span class="tag">#无塑海洋挑战</span>
-            <span class="tag">#今日净滩打卡</span>
-            <span class="tag">#捡跑行动</span>
+      <div class="community-layout">
+        <!-- 左侧：任务列表 -->
+        <div class="task-column">
+          <div class="column-header">
+          </div>
+          <div class="task-list">
+            <div v-for="task in logic.tasks.value" :key="task.id" class="glass-panel task-card">
+              <div class="task-header">
+                <span class="task-tag">官方任务</span>
+                <span class="task-date">{{ task.date }}</span>
+              </div>
+              <h4>{{ task.title }}</h4>
+              <p class="task-loc">📍 {{ task.loc }}</p>
+              <button v-if="!task.isJoined" @click="logic.joinTask(task)" class="btn-primary full-width">报名参加</button>
+              <button v-else @click="logic.leaveTask(task)" class="btn-ghost full-width">已参加 (退出)</button>
+            </div>
           </div>
         </div>
 
-        <!-- Publish Area -->
-        <div class="publish-card glass-panel">
-          <textarea 
-            v-model="newPostContent" 
-            placeholder="分享你的净滩故事或环保心得..."
-            rows="3"
-          ></textarea>
-          
-          <!-- Image Preview -->
-          <div v-if="selectedImage" class="image-preview-container">
-            <img :src="selectedImage" alt="Preview" />
-            <span class="remove-img" @click="selectedImage = ''">×</span>
-          </div>
-
-          <div class="publish-footer">
-            <div class="publish-options">
-              <label class="opt-icon" title="上传图片">
-                📷
-                <input type="file" accept="image/*" @change="handleImageSelect" hidden />
-              </label>
-              <span class="opt-icon" title="所在位置">📍</span>
-              <span class="opt-icon" title="添加标签">🏷️</span>
+        <!-- 中间：动态流 -->
+        <div class="feed-column">
+          <!-- 发布卡片 -->
+          <div class="glass-panel publish-card">
+            <textarea 
+              v-model="logic.newPostContent.value" 
+              placeholder="分享你的环保瞬间..."
+              :disabled="logic.isPublishing.value"
+            ></textarea>
+            
+            <div v-if="logic.selectedImage.value" class="image-preview-container">
+              <img :src="logic.selectedImage.value" />
+              <span class="remove-img" @click="logic.selectedImage.value = ''">×</span>
             </div>
-            <button 
-              class="btn-primary small" 
-              @click="publishPost"
-              :disabled="(!newPostContent.trim() && !selectedImage) || isPublishing"
-            >
-              {{ isPublishing ? '发布中...' : '发布动态' }}
-            </button>
-          </div>
-        </div>
 
-        <div class="feed-item glass-panel" v-for="post in feed" :key="post.id">
-          <div class="feed-header">
-            <div class="user-meta">
-              <div class="mini-avatar">👤</div>
-              <strong>{{ post.user }}</strong>
+            <div class="publish-footer">
+              <div class="publish-options">
+                <label class="opt-icon" title="上传图片">
+                  <input type="file" hidden @change="logic.handleImageSelect" accept="image/*" />
+                  📷 <span style="font-size: 0.8rem; margin-left: 5px;">图片</span>
+                </label>
+              </div>
+              <button 
+                class="btn-primary" 
+                @click="logic.publishPost" 
+                :disabled="logic.isPublishing.value || (!logic.newPostContent.value.trim() && !logic.selectedImage.value)"
+              >
+                {{ logic.isPublishing.value ? '发布中...' : '发布动态' }}
+              </button>
             </div>
-            <span class="time-ago">{{ formatTime(post.createdAt) }}</span>
-          </div>
-          <p class="feed-content">{{ post.content }}</p>
-          <div v-if="post.image" class="feed-image" @click="openImagePreview(post.image)">
-            <img :src="post.image" alt="Post content" />
-          </div>
-          <div class="feed-actions">
-            <span 
-              class="action-item" 
-              :class="{ 'liked': post.isLiked }"
-              @click="toggleLike(post)"
-            >
-              {{ post.isLiked ? '❤️' : '🤍' }} {{ post.likes }}
-            </span>
-            <span 
-              class="action-item"
-              @click="toggleComments(post)"
-            >
-              💬 {{ post.comments?.length || '' }} 评论
-            </span>
-            <span 
-              v-if="post.user === store.user.name" 
-              class="action-item delete-action" 
-              @click="deletePost(post.id)"
-            >
-              🗑️ 删除
-            </span>
           </div>
 
-          <!-- Comment Section -->
-          <Transition name="fade">
-            <div v-if="post.showComments" class="comment-section">
-              <div class="comment-list" v-if="post.comments.length > 0">
-                <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
-                  <div class="comment-header">
-                    <span class="comment-user">{{ comment.user }}</span>
-                    <span class="comment-time">{{ formatTime(comment.createdAt) }}</span>
+          <!-- 动态列表 -->
+          <div class="feed-list">
+            <div v-for="post in logic.feed.value" :key="post.id" class="glass-panel feed-item">
+              <div class="feed-header">
+                <div class="user-info" style="display: flex; gap: 10px; align-items: center;">
+                  <div class="avatar" style="font-size: 1.5rem;">👤</div>
+                  <div class="meta">
+                    <div class="username" style="font-weight: bold; color: #00b4db;">{{ post.user }}</div>
+                    <div class="time-ago">{{ logic.formatTime(post.createdAt) }}</div>
                   </div>
-                  <p class="comment-content">{{ comment.content }}</p>
+                </div>
+                <!-- 如果是自己的动态，可以删除 -->
+                <button v-if="post.user === store.user.name" class="btn-more" @click="logic.deletePost(post.id)">删除</button>
+              </div>
+
+              <div class="feed-content">{{ post.content }}</div>
+              
+              <div v-if="post.image" class="feed-image" @click="logic.openImagePreview(post.image)">
+                <img :src="post.image" loading="lazy" />
+              </div>
+
+              <div class="feed-actions">
+                <div 
+                  class="action-item" 
+                  :class="{ liked: post.isLiked }"
+                  @click="logic.toggleLike(post)"
+                >
+                  {{ post.isLiked ? '❤️' : '🤍' }} {{ post.likes }}
+                </div>
+                <div class="action-item" @click="logic.toggleComments(post)">
+                  💬 {{ post.comments?.length || 0 }}
+                </div>
+                <div class="action-item">🔗 分享</div>
+              </div>
+
+              <!-- 评论区 -->
+              <div v-if="post.showComments" class="comment-section">
+                <div class="comment-list">
+                  <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
+                    <div class="comment-header">
+                      <span class="comment-user">{{ comment.user }}</span>
+                      <span class="comment-time">{{ logic.formatTime(comment.createdAt) }}</span>
+                    </div>
+                    <p class="comment-content">{{ comment.content }}</p>
+                  </div>
+                  <div v-if="!post.comments?.length" class="no-comments">暂无评论，快来抢沙发吧~</div>
+                </div>
+                
+                <div class="comment-input-area">
+                  <input 
+                    v-model="post.newCommentContent" 
+                    type="text" 
+                    placeholder="说点什么吧..." 
+                    @keyup.enter="logic.addComment(post)"
+                  />
+                  <button 
+                    class="btn-primary btn-sm" 
+                    @click="logic.addComment(post)"
+                    :disabled="!post.newCommentContent?.trim()"
+                  >发送</button>
                 </div>
               </div>
-              <div v-else class="no-comments">暂无评论，快来抢沙发吧~</div>
-              
-              <div class="comment-input-area">
-                <input 
-                  type="text" 
-                  v-model="post.newCommentContent" 
-                  placeholder="写下你的评论..."
-                  @keyup.enter="addComment(post)"
-                >
-                <button 
-                  class="btn-primary small" 
-                  @click="addComment(post)"
-                  :disabled="!post.newCommentContent?.trim()"
-                >
-                  发表
-                </button>
-              </div>
-            </div>
-          </Transition>
-        </div>
-      </div>
-
-      <!-- Right Column: Leaderboard -->
-      <div class="sidebar-column">
-        <div class="leaderboard glass-panel">
-          <h3>🏆 荣誉榜 (月度)</h3>
-          <div class="rank-list">
-            <div class="rank-item" v-for="(rank, index) in rankings" :key="index">
-              <span class="rank-num" :class="'top-' + (index + 1)">{{ index + 1 }}</span>
-              <div class="rank-user">
-                <span class="rank-name">{{ rank.name }}</span>
-                <span class="rank-weight">{{ rank.weight }} kg</span>
-              </div>
-              <span v-if="index === 0" class="medal">🥇</span>
-              <span v-else-if="index === 1" class="medal">🥈</span>
-              <span v-else-if="index === 2" class="medal">🥉</span>
             </div>
           </div>
         </div>
 
-        <div class="mall-promo glass-panel">
-          <h4>🎁 装备兑换</h4>
-          <p>任务需要手套或清理钳？</p>
-          <router-link to="/app/mall" class="promo-link">前往积分商城 &rarr;</router-link>
+        <!-- 右侧：排行榜 -->
+        <div class="rank-column">
+          <div class="glass-panel sidebar-card">
+            <h3 style="margin-bottom: 20px; color: #00e5ff;">🏆 贡献排行榜</h3>
+            <div class="rank-list" style="display: flex; flex-direction: column; gap: 15px;">
+              <div v-for="(rank, index) in logic.rankings.value" :key="rank.id" class="rank-item" style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                <div class="rank-num" :style="{ color: index < 3 ? '#00e5ff' : '#888', fontWeight: 'bold' }">{{ index + 1 }}</div>
+                <div class="rank-info" style="flex: 1;">
+                  <div class="name">{{ rank.name }}</div>
+                  <div class="weight" style="font-size: 0.8rem; opacity: 0.6;">累计回收: {{ rank.weight }}kg</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
     </div>
 
-    <!-- Toast Feedback -->
-    <Transition name="toast">
-      <div v-if="toast.show" class="toast-message" :class="toast.type">
-        {{ toast.message }}
+    <!-- 管理员视图 -->
+    <div v-else>
+      <div class="header-section">
+        <div class="title-area">
+          <h2>⚖️ 社区监管与活动中心</h2>
+          <div class="admin-tabs">
+            <button 
+              :class="['tab-btn', { active: activeTab === 'moderate' }]" 
+              @click="activeTab = 'moderate'"
+            >内容审核</button>
+            <button 
+              :class="['tab-btn', { active: activeTab === 'events' }]" 
+              @click="activeTab = 'events'"
+            >活动发布</button>
+          </div>
+        </div>
       </div>
-    </Transition>
 
-    <!-- Custom Confirm Modal -->
+      <!-- 内容审核 -->
+      <div v-if="activeTab === 'moderate'" class="admin-content glass-panel">
+        <div class="moderate-list" style="display: flex; flex-direction: column; gap: 20px; padding: 20px;">
+          <div class="mod-item" v-for="post in logic.feed.value" :key="post.id" style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div class="mod-header" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <span class="user" style="color: #00b4db; font-weight: bold;">{{ post.user }}</span>
+              <span class="time" style="opacity: 0.5; font-size: 0.8rem;">{{ logic.formatTime(post.createdAt) }}</span>
+            </div>
+            <p class="content" style="margin-bottom: 15px;">{{ post.content }}</p>
+            <div v-if="post.image" class="feed-image" style="width: 200px; margin-bottom: 15px;">
+              <img :src="post.image" style="width: 100%; border-radius: 8px;" />
+            </div>
+            <div class="mod-footer" style="display: flex; gap: 10px;">
+              <button class="btn-sm btn-danger" @click="logic.deletePost(post.id)">删除违规内容</button>
+              <button class="btn-sm btn-warning" @click="muteUser(post.user)">禁言用户</button>
+              <button class="btn-sm btn-success">审核通过</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 活动管理 -->
+      <div v-else class="admin-content glass-panel">
+        <div style="padding: 20px;">
+          <table class="admin-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="text-align: left; border-bottom: 2px solid rgba(255,255,255,0.1);">
+                <th style="padding: 10px;">活动标题</th>
+                <th style="padding: 10px;">地点</th>
+                <th style="padding: 10px;">日期</th>
+                <th style="padding: 10px;">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="task in logic.tasks.value" :key="task.id" style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 15px;">{{ task.title }}</td>
+                <td style="padding: 15px;">{{ task.loc }}</td>
+                <td style="padding: 15px;">{{ task.date }}</td>
+                <td style="padding: 15px;">
+                  <button class="btn-sm btn-ghost">编辑</button>
+                  <button class="btn-sm btn-danger" @click="cancelEvent(task)">取消活动</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图片预览遮罩 -->
+    <div v-if="logic.previewImage.value.show" class="image-preview-overlay" @click="logic.closeImagePreview">
+      <div class="preview-container" @click.stop>
+        <img :src="logic.previewImage.value.url" />
+        <div class="close-preview" @click="logic.closeImagePreview">×</div>
+      </div>
+    </div>
+
+    <!-- 统一 Toast 提示 -->
     <Transition name="fade">
-      <div v-if="modal.show" class="modal-overlay" @click.self="closeModal">
-        <div class="modal-card glass-panel shadow-lg">
-          <div class="modal-header">
-            <h3>{{ modal.title }}</h3>
-            <span class="close-btn" @click="closeModal">&times;</span>
-          </div>
-          <div class="modal-body">
-            <p>{{ modal.message }}</p>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-ghost" @click="closeModal">取消</button>
-            <button class="btn-primary" @click="confirmModal">确定</button>
-          </div>
-        </div>
+      <div v-if="logic.toast.value.show" class="toast-message" :class="logic.toast.value.type">
+        {{ logic.toast.value.message }}
       </div>
     </Transition>
 
-    <!-- Image Preview Modal -->
-    <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="previewImage.show" class="image-preview-overlay" @click="closeImagePreview">
-          <div class="preview-container">
-            <img :src="previewImage.url" alt="Preview Large" @click.stop />
-            <button class="close-preview" @click="closeImagePreview">&times;</button>
-          </div>
+    <!-- 统一 确认弹窗 -->
+    <div v-if="logic.modal.value.show" class="modal-overlay" @click="logic.closeModal">
+      <div class="glass-panel modal-card" @click.stop>
+        <div class="modal-header">
+          <h3>{{ logic.modal.value.title }}</h3>
+          <span class="close-btn" @click="logic.closeModal">×</span>
         </div>
-      </Transition>
-    </Teleport>
+        <div class="modal-body">
+          <p>{{ logic.modal.value.message }}</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" @click="logic.closeModal">取消</button>
+          <button class="btn-primary" @click="logic.confirmModal">确定</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { store } from '../../stores';
-import {
-  tasks,
-  feed,
-  rankings,
-  isLoading,
-  toast,
-  modal,
-  newPostContent,
-  selectedImage,
-  isPublishing,
-  previewImage,
-  openImagePreview,
-  closeImagePreview,
-  handleImageSelect,
-  formatTime,
-  initCommunity,
-  joinTask,
-  leaveTask,
-  publishPost,
-  toggleLike,
-  toggleComments,
-  addComment,
-  deletePost,
-  closeModal,
-  confirmModal
-} from './Community';
+import * as logic from './Community.ts';
+import './Community.css';
+
+const isAdmin = computed(() => store.isAdmin);
+const activeTab = ref('moderate');
 
 onMounted(() => {
-  initCommunity();
+  logic.initCommunity();
 });
+
+// 管理员特有方法（目前逻辑主要在 .ts 中）
+const muteUser = (user: string) => alert(`用户 ${user} 已被禁言 24 小时`);
+const cancelEvent = (task: any) => alert(`活动 ${task.title} 已取消`);
 </script>
 
-<style scoped src="./Community.css"></style>
+<style scoped>
+.community-view {
+  padding: 10px;
+  position: relative;
+  min-height: 80vh;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.tab-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tab-btn.active {
+  background: #00b4db;
+  border-color: #00b4db;
+}
+
+/* Toast 样式 */
+.toast-message {
+  position: fixed;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 30px;
+  border-radius: 30px;
+  z-index: 9999;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+  font-weight: bold;
+}
+
+.toast-message.success { background: #52c41a; color: white; }
+.toast-message.error { background: #ff4d4f; color: white; }
+.toast-message.info { background: #1890ff; color: white; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.5s, transform 0.5s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; transform: translate(-50%, -20px); }
+
+.full-width { width: 100%; }
+.btn-sm { padding: 5px 15px; font-size: 0.85rem; }
+
+/* 修复 feed-image 在 admin 视图的展示 */
+.mod-item .feed-image {
+  cursor: default;
+}
+
+.btn-more {
+  background: none;
+  border: none;
+  color: #ff4757;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-more:hover {
+  text-decoration: underline;
+}
+</style>

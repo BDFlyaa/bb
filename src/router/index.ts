@@ -32,7 +32,7 @@ const router = createRouter({
       children: [
         { path: '', redirect: '/app/stats' },
         { path: 'stats', component: Statistics },
-        { path: 'map', component: () => import('../pages/map/MapView.vue') },
+        { path: 'map', component: () => import('../pages/map/Map.vue') },
         { path: 'checkin', component: () => import('../pages/checkin/Checkin.vue') },
         { path: 'blockchain', component: () => import('../pages/blockchain/Traceability.vue') },
         { path: 'mall', component: () => import('../pages/mall/Mall.vue') },
@@ -43,7 +43,7 @@ const router = createRouter({
 });
 
 // 简单的路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const publicPages = ['/', '/login', '/register'];
   const authRequired = !publicPages.includes(to.path);
   

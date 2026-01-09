@@ -18,6 +18,13 @@ export const store = reactive({
   token: localStorage.getItem('token') || '',
   user: JSON.parse(localStorage.getItem('user') || '{"name": "User", "role": "volunteer", "points": 0}'),
   
+  // 是否为管理员
+  get isAdmin() {
+    const r = this.user.role;
+    return r === '管理员' || r === '回收站管理员' || r === '系统管理员' || 
+           r === 'admin' || r === 'recycle_admin' || r === 'system_admin';
+  },
+  
   // 登录动作
   async login(username: string, password: string) {
     this.isLoading = true;
