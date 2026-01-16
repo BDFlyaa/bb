@@ -1,0 +1,379 @@
+.mall-view {
+  padding: 10px;
+}
+
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+}
+
+.title-area h2 {
+  margin-bottom: 5px;
+  background: linear-gradient(to right, #fff, #00b4db);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.title-area p {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.user-status {
+  padding: 15px 25px;
+  text-align: right;
+}
+
+.user-status .label {
+  display: block;
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-bottom: 5px;
+}
+
+.user-status .value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffd700;
+}
+
+/* 过滤器 */
+.filter-bar {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.filter-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #aaa;
+  padding: 8px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.filter-btn.active, .filter-btn:hover {
+  background: rgba(0, 229, 255, 0.1);
+  color: #00e5ff;
+  border-color: #00e5ff;
+}
+
+/* 商品网格 */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 25px;
+}
+
+.product-card {
+  padding: 0;
+  overflow: hidden;
+  transition: 0.3s;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  border-color: #00e5ff;
+}
+
+.product-icon {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.product-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-info {
+  padding: 20px;
+}
+
+.product-info h4 {
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+}
+
+.product-info .desc {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 20px;
+  height: 40px;
+  overflow: hidden;
+}
+
+.stock-info {
+  font-size: 0.8rem;
+  color: #ff6b6b;
+  margin-bottom: 10px;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price-row .points {
+  color: #ffd700;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #555;
+  border-color: #555;
+}
+
+/* 管理员界面 */
+.admin-tabs {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 5px;
+  border-radius: 12px;
+  width: fit-content;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  color: #888;
+  padding: 10px 20px;
+  cursor: pointer;
+  position: relative;
+  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 229, 255, 0.1);
+}
+
+.tab-icon {
+  font-size: 1.2rem;
+}
+
+.badge {
+  background: #ff4757;
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(255, 71, 87, 0.3);
+}
+
+.admin-content {
+  padding: 24px;
+  margin-top: 24px;
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 管理员表格优化 */
+.admin-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.admin-table th {
+  text-align: left;
+  padding: 12px 20px;
+  color: #888;
+  font-weight: 500;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.admin-table tbody tr {
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.2s;
+}
+
+.admin-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: scale(1.002);
+}
+
+.admin-table td {
+  padding: 16px 20px;
+  vertical-align: middle;
+}
+
+.admin-table td:first-child { border-radius: 12px 0 0 12px; }
+.admin-table td:last-child { border-radius: 0 12px 12px 0; }
+
+.product-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.product-cell .icon {
+  font-size: 1.8rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+/* 状态标签 */
+.status-tag {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-tag.success {
+  background: rgba(0, 229, 255, 0.1);
+  color: #00e5ff;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+}
+
+.status-tag.danger {
+  background: rgba(255, 71, 87, 0.1);
+  color: #ff4757;
+  border: 1px solid rgba(255, 71, 87, 0.2);
+}
+
+.status-tag.pending {
+  background: rgba(255, 165, 0, 0.1);
+  color: #ffa500;
+  border: 1px solid rgba(255, 165, 0, 0.2);
+}
+
+.status-tag.shipped {
+  background: rgba(46, 213, 115, 0.1);
+  color: #2ed573;
+  border: 1px solid rgba(46, 213, 115, 0.2);
+}
+
+/* 操作按钮 */
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  margin-right: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.05);
+  color: #aaa;
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.btn-danger {
+  background: rgba(255, 71, 87, 0.1);
+  color: #ff4757;
+}
+
+.btn-danger:hover {
+  background: #ff4757;
+  color: #fff;
+}
+
+.btn-success {
+  background: rgba(46, 213, 115, 0.1);
+  color: #2ed573;
+}
+
+.btn-success:hover {
+  background: #2ed573;
+  color: #fff;
+}
+
+/* 模态框 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 500px;
+  padding: 30px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.order-list {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.order-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.order-item .icon { font-size: 2rem; }
+.order-item .info { flex: 1; }
+.order-item .info .name { font-weight: bold; }
+.order-item .info .time { font-size: 0.8rem; color: #666; }
+.order-item .status { font-size: 0.8rem; padding: 2px 8px; border-radius: 4px; }
+.order-item .status.shipped { background: rgba(82, 196, 26, 0.1); color: #52c41a; }
+.order-item .status.success { background: rgba(82, 196, 26, 0.1); color: #52c41a; }
+
+.empty-state {
+  text-align: center;
+  color: #888;
+  padding: 20px;
+}

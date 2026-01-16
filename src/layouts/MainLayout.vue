@@ -9,7 +9,7 @@
         <div class="avatar">👤</div>
         <div>
           <div class="username">{{ store.user.name }}</div>
-          <div class="role-badge">{{ store.user.role }}</div>
+          <div class="role-badge">{{ store.userDisplayRole }}</div>
         </div>
       </div>
       

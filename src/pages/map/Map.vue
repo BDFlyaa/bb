@@ -180,6 +180,42 @@
         </div>
       </div>
     </Transition>
+
+    <!-- 报错处理模态框 (管理员) -->
+    <Transition name="fade">
+      <div v-if="showErrorListModal" class="modal-overlay" @click.self="showErrorListModal = false">
+        <div class="modal glass-panel shadow-xl wide-modal">
+          <div class="modal-header">
+            <h3>🛠️ 报错反馈处理</h3>
+            <span class="close-btn" @click="showErrorListModal = false">&times;</span>
+          </div>
+          <div class="modal-body">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>反馈人</th>
+                  <th>相关站点</th>
+                  <th>类型</th>
+                  <th>描述</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in errorReports" :key="r.id">
+                  <td>{{ r.user }}</td>
+                  <td>{{ r.stationName }}</td>
+                  <td>{{ r.type }}</td>
+                  <td>{{ r.desc }}</td>
+                  <td>
+                    <button class="btn-sm btn-success" @click="resolveReport(r)">已处理</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -212,7 +248,9 @@ const {
   editStation,
   deleteStation,
   approveAudit,
-  rejectAudit
+  rejectAudit,
+  resolveReport,
+  errorReports
 } = useMapLogic();
 </script>
 

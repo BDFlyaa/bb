@@ -21,8 +21,12 @@ export const store = reactive({
   // 是否为管理员
   get isAdmin() {
     const r = this.user.role;
-    return r === '管理员' || r === '回收站管理员' || r === '系统管理员' || 
-           r === 'admin' || r === 'recycle_admin' || r === 'system_admin';
+    return ['admin', 'recycle_admin', 'system_admin'].includes(r);
+  },
+
+  // 获取显示的中文角色名
+  get userDisplayRole() {
+    return ROLE_MAP[this.user.role] || this.user.role;
   },
   
   // 登录动作
@@ -36,7 +40,7 @@ export const store = reactive({
       this.token = token;
       this.user = {
         name: user.username,
-        role: ROLE_MAP[user.role] || user.role,
+        role: user.role, // 保持原始英文代码
         points: user.points
       };
       
@@ -78,6 +82,14 @@ export const store = reactive({
     this.user = { name: '', role: '', points: 0 };
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+  },
+
+  // 更新积分（正数为增加，负数为扣除）
+  updatePoints(amount: number) {
+    if (this.user) {
+      this.user.points = (this.user.points || 0) + amount;
+      localStorage.setItem('user', JSON.stringify(this.user));
+    }
   },
 
   // 停止加载

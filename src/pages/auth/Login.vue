@@ -16,13 +16,6 @@
         <div class="input-group">
           <input type="password" placeholder="密码" v-model="form.password">
         </div>
-        <div class="input-group">
-            <select v-model="form.role">
-              <option value="volunteer">普通志愿者</option>
-              <option value="recycle_admin">回收站管理员</option>
-              <option value="system_admin">系统管理员</option>
-            </select>
-          </div>
         <button type="submit" class="btn-primary full-width">进入系统</button>
         <div class="auth-footer">
           <p>没有账号？ <router-link to="/register">立即注册</router-link></p>

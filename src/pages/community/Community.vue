@@ -159,31 +159,37 @@
             <button 
               :class="['tab-btn', { active: activeTab === 'moderate' }]" 
               @click="activeTab = 'moderate'"
-            >内容审核</button>
+            >
+              <span class="tab-icon">🛡️</span>
+              内容审核
+            </button>
             <button 
               :class="['tab-btn', { active: activeTab === 'events' }]" 
               @click="activeTab = 'events'"
-            >活动发布</button>
+            >
+              <span class="tab-icon">📅</span>
+              活动发布
+            </button>
           </div>
         </div>
       </div>
 
       <!-- 内容审核 -->
       <div v-if="activeTab === 'moderate'" class="admin-content glass-panel">
-        <div class="moderate-list" style="display: flex; flex-direction: column; gap: 20px; padding: 20px;">
-          <div class="mod-item" v-for="post in logic.feed.value" :key="post.id" style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div class="mod-header" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-              <span class="user" style="color: #00b4db; font-weight: bold;">{{ post.user }}</span>
-              <span class="time" style="opacity: 0.5; font-size: 0.8rem;">{{ logic.formatTime(post.createdAt) }}</span>
+        <div class="moderate-list">
+          <div class="mod-item" v-for="post in logic.feed.value" :key="post.id">
+            <div class="mod-header">
+              <span class="user">{{ post.user }}</span>
+              <span class="time">{{ logic.formatTime(post.createdAt) }}</span>
             </div>
-            <p class="content" style="margin-bottom: 15px;">{{ post.content }}</p>
-            <div v-if="post.image" class="feed-image" style="width: 200px; margin-bottom: 15px;">
-              <img :src="post.image" style="width: 100%; border-radius: 8px;" />
+            <p class="content">{{ post.content }}</p>
+            <div v-if="post.image" class="feed-image" style="max-width: 400px;">
+              <img :src="post.image" @click="logic.openImagePreview(post.image)" />
             </div>
-            <div class="mod-footer" style="display: flex; gap: 10px;">
-              <button class="btn-sm btn-danger" @click="logic.deletePost(post.id)">删除违规内容</button>
-              <button class="btn-sm btn-warning" @click="muteUser(post.user)">禁言用户</button>
+            <div class="mod-footer">
               <button class="btn-sm btn-success">审核通过</button>
+              <button class="btn-sm btn-warning" @click="muteUser(post.user)">禁言用户</button>
+              <button class="btn-sm btn-danger" @click="logic.deletePost(post.id)">删除违规</button>
             </div>
           </div>
         </div>
@@ -191,24 +197,26 @@
 
       <!-- 活动管理 -->
       <div v-else class="admin-content glass-panel">
-        <div style="padding: 20px;">
-          <table class="admin-table" style="width: 100%; border-collapse: collapse;">
+        <div class="table-container">
+          <table class="admin-table">
             <thead>
-              <tr style="text-align: left; border-bottom: 2px solid rgba(255,255,255,0.1);">
-                <th style="padding: 10px;">活动标题</th>
-                <th style="padding: 10px;">地点</th>
-                <th style="padding: 10px;">日期</th>
-                <th style="padding: 10px;">操作</th>
+              <tr>
+                <th>活动标题</th>
+                <th>地点</th>
+                <th>日期</th>
+                <th>状态</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="task in logic.tasks.value" :key="task.id" style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                <td style="padding: 15px;">{{ task.title }}</td>
-                <td style="padding: 15px;">{{ task.loc }}</td>
-                <td style="padding: 15px;">{{ task.date }}</td>
-                <td style="padding: 15px;">
+              <tr v-for="task in logic.tasks.value" :key="task.id">
+                <td style="font-weight: 500;">{{ task.title }}</td>
+                <td><span style="opacity: 0.7;">📍</span> {{ task.loc }}</td>
+                <td>{{ task.date }}</td>
+                <td><span class="status-tag success">进行中</span></td>
+                <td>
                   <button class="btn-sm btn-ghost">编辑</button>
-                  <button class="btn-sm btn-danger" @click="cancelEvent(task)">取消活动</button>
+                  <button class="btn-sm btn-danger" @click="cancelEvent(task)">取消</button>
                 </td>
               </tr>
             </tbody>

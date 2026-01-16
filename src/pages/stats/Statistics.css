@@ -1,0 +1,221 @@
+.stats-view {
+  padding: 10px;
+}
+
+.header-section {
+  margin-bottom: 25px;
+}
+
+.header-section h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  background: linear-gradient(to right, #fff, #00b4db);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 管理员样式 */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+}
+
+.wide { grid-column: span 1; }
+
+.chart-card {
+  padding: 20px;
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.mock-chart-line {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.bar {
+  width: 40px;
+  background: linear-gradient(to top, #00b4db, #0083b0);
+  border-radius: 6px 6px 0 0;
+  position: relative;
+  transition: 0.3s;
+}
+
+.bar:hover {
+  filter: brightness(1.2);
+}
+
+.bar span {
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  color: #00b4db;
+}
+
+.chart-labels {
+  display: flex;
+  justify-content: space-around;
+  padding-top: 10px;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.stats-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stat-card.small {
+  padding: 15px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 10px 0;
+  color: #fff;
+}
+
+.stat-change.positive {
+  color: #52c41a;
+  font-size: 0.9rem;
+}
+
+.stat-card.warning .stat-value {
+  color: #faad14;
+}
+
+.stat-desc {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.inventory-status {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.inventory-status .low {
+  color: #ff4d4f;
+  font-weight: bold;
+}
+
+/* 志愿者样式 */
+.volunteer-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.top-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.top-stats .stat-card {
+  padding: 30px;
+  text-align: center;
+}
+
+.top-stats .icon {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+}
+
+.top-stats .unit {
+  font-size: 1rem;
+  color: #888;
+}
+
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 30px;
+}
+
+.medal-section, .ranking-preview {
+  padding: 25px;
+}
+
+.medal-list {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 25px;
+}
+
+.medal-item {
+  text-align: center;
+  font-size: 2.5rem;
+  filter: grayscale(1);
+  opacity: 0.4;
+  transition: 0.3s;
+}
+
+.medal-item.active {
+  filter: grayscale(0);
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.medal-item p {
+  font-size: 0.8rem;
+  margin-top: 10px;
+  color: #aaa;
+}
+
+.ranking-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 20px;
+}
+
+.ranking-list li {
+  display: flex;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.ranking-list li:last-child {
+  border-bottom: none;
+}
+
+.rank-num {
+  width: 30px;
+  height: 30px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  font-weight: bold;
+}
+
+.ranking-list li:nth-child(1) .rank-num { background: #ffd700; color: #000; }
+.ranking-list li:nth-child(2) .rank-num { background: #c0c0c0; color: #000; }
+.ranking-list li:nth-child(3) .rank-num { background: #cd7f32; color: #000; }
+
+.ranking-list .name {
+  flex: 1;
+}
+
+.ranking-list .score {
+  color: #00e5ff;
+  font-weight: bold;
+}

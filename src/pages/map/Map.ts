@@ -1,6 +1,28 @@
 import { ref, onMounted, onUnmounted, reactive, computed } from 'vue';
 import AMapLoader from '@amap/amap-jsapi-loader';
 import { store } from '../../stores';
+import axios from 'axios';
+import router from '../../router';
+
+const API_BASE = 'http://localhost:3000/api/map';
+const api = axios.create({ baseURL: API_BASE });
+
+api.interceptors.request.use(config => {
+  if (store.token) config.headers.Authorization = `Bearer ${store.token}`;
+  return config;
+});
+
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      store.logout();
+      router.push('/login');
+      alert('登录已过期，请重新登录');
+    }
+    return Promise.reject(error);
+  }
+);
 
 export function useMapLogic() {
   const isAdmin = computed(() => store.isAdmin);
@@ -26,25 +48,49 @@ export function useMapLogic() {
     desc: ''
   });
 
-  // 模拟点位数据，增加状态字段
-  const mockStations = reactive([
-    { id: 1, name: '湛山街道回收站', address: '青岛市延安三路', lng: 120.374, lat: 36.062, status: 'normal', statusText: '正常运行' },
-    { id: 2, name: '五四广场回收点', address: '青岛市东海西路', lng: 120.385, lat: 36.064, status: 'full', statusText: '已满' },
-    { id: 3, name: '八大关环保站', address: '青岛市正阳关路', lng: 120.352, lat: 36.055, status: 'normal', statusText: '正常运行' }
-  ]);
+  // 数据状态
+  const mockStations = ref<any[]>([]); // 兼容旧命名，实际是真实数据
+  const pendingAudits = ref<any[]>([]);
+  const errorReports = ref<any[]>([]);
 
-  // 模拟审核数据
-  const pendingAudits = reactive([
-    { id: 101, user: '张三', name: '新都小区回收点', address: '新都路15号', time: '2023-10-26 14:20' },
-    { id: 102, user: '李四', name: '海滨花园站', address: '滨海大道102号', time: '2023-10-26 15:45' }
-  ]);
-
-  const pendingCount = computed(() => pendingAudits.length);
-  const errorCount = ref(3); // 模拟报错数量
+  const pendingCount = computed(() => pendingAudits.value.length);
+  const errorCount = computed(() => errorReports.value.length);
 
   let map: any = null;
   let geocoder: any = null;
   let placeSearch: any = null;
+  let markers: any[] = [];
+
+  // 获取数据
+  const fetchStations = async () => {
+    try {
+      const res = await api.get('/stations');
+      mockStations.value = res.data;
+      refreshMarkers();
+    } catch (e) {
+      console.error('获取站点失败', e);
+    }
+  };
+
+  const fetchAudits = async () => {
+    if (!isAdmin.value) return;
+    try {
+      const res = await api.get('/audit');
+      pendingAudits.value = res.data;
+    } catch (e) {
+      console.error('获取审核列表失败', e);
+    }
+  };
+
+  const fetchReports = async () => {
+    if (!isAdmin.value) return;
+    try {
+      const res = await api.get('/report');
+      errorReports.value = res.data;
+    } catch (e) {
+      console.error('获取报错列表失败', e);
+    }
+  };
 
   const initMap = () => {
     (window as any)._AMapSecurityConfig = {
@@ -69,7 +115,7 @@ export function useMapLogic() {
       map = new AMap.Map('container', {
         viewMode: '3D',
         zoom: 13,
-        center: [120.37, 36.06],
+        center: [110.359377, 21.270708], // 湛江
         theme: 'amap://styles/darkblue'
       });
 
@@ -88,9 +134,12 @@ export function useMapLogic() {
       geocoder = new AMap.Geocoder({ city: '全国' });
       placeSearch = new AMap.PlaceSearch({ map: map });
 
-      mockStations.forEach(station => {
-        addMarker(station);
-      });
+      // 加载数据
+      fetchStations();
+      if (isAdmin.value) {
+        fetchAudits();
+        fetchReports();
+      }
 
       map.on('click', (e: any) => {
         if (isPickingLocation.value) {
@@ -131,6 +180,17 @@ export function useMapLogic() {
     });
   };
 
+  const refreshMarkers = () => {
+    if (!map) return;
+    // 清除旧标记
+    map.remove(markers);
+    markers = [];
+    
+    mockStations.value.forEach(station => {
+      addMarker(station);
+    });
+  };
+
   const addMarker = (station: any) => {
     if (!map) return;
     const AMap = (window as any).AMap;
@@ -149,11 +209,16 @@ export function useMapLogic() {
       offset: new AMap.Pixel(-15, -30)
     });
 
+    markers.push(marker);
+
     marker.on('click', () => {
       const infoWindow = new AMap.InfoWindow({
         content: `<div style="color:#333;padding:10px;min-width:150px;">
           <b style="font-size:14px;">${station.name}</b>
           <p style="margin:5px 0 0;font-size:12px;color:#666;">${station.address}</p>
+          <div style="margin-top:5px;">
+             <span style="font-size:12px;padding:2px 5px;border-radius:3px;background:${station.status === 'full' ? '#ff4d4f' : '#52c41a'};color:white;">${station.statusText}</span>
+          </div>
           <button onclick="window.focusStationById(${station.id})" style="margin-top:8px;background:#00e5ff;border:none;color:white;padding:4px 8px;border-radius:4px;cursor:pointer;width:100%;">详情</button>
         </div>`,
         offset: new AMap.Pixel(0, -30)
@@ -182,7 +247,7 @@ export function useMapLogic() {
   };
 
   (window as any).focusStationById = (id: number) => {
-    const station = mockStations.find(s => s.id === id);
+    const station = mockStations.value.find(s => s.id === id);
     if (station) {
       focusStation(station);
     }
@@ -194,90 +259,143 @@ export function useMapLogic() {
     }
   };
 
-  const submitReport = () => {
+  const submitReport = async () => {
     if (!reportForm.name || !reportForm.lng || !reportForm.lat) {
       alert('请填写完整信息并选择位置');
       return;
     }
     
-    const newStation = {
-      id: Date.now(),
-      name: reportForm.name,
-      address: reportForm.address,
-      lng: reportForm.lng!,
-      lat: reportForm.lat!,
-      status: 'normal',
-      statusText: '正常运行'
-    };
-    
-    mockStations.unshift(newStation);
-    addMarker(newStation);
-    
-    if ((window as any).tempMarker) {
-      (window as any).tempMarker.setMap(null);
-      (window as any).tempMarker = null;
+    try {
+      if (isAdmin.value) {
+        // 管理员直接添加
+        await api.post('/stations', {
+            name: reportForm.name,
+            address: reportForm.address,
+            lng: reportForm.lng,
+            lat: reportForm.lat,
+            status: 'normal'
+        });
+        alert('新站点已添加');
+        fetchStations();
+      } else {
+        // 志愿者提交审核
+        await api.post('/audit', {
+            name: reportForm.name,
+            address: reportForm.address,
+            lng: reportForm.lng,
+            lat: reportForm.lat
+        });
+        alert('申请已提交，等待审核');
+      }
+      
+      if ((window as any).tempMarker) {
+        (window as any).tempMarker.setMap(null);
+        (window as any).tempMarker = null;
+      }
+      
+      showReportModal.value = false;
+      reportForm.name = '';
+      reportForm.address = '';
+      reportForm.lng = null;
+      reportForm.lat = null;
+
+    } catch (e: any) {
+        alert(e.response?.data?.message || '操作失败');
     }
-    
-    showReportModal.value = false;
-    reportForm.name = '';
-    reportForm.address = '';
-    reportForm.lng = null;
-    reportForm.lat = null;
   };
 
-  const submitIssue = () => {
+  const submitIssue = async () => {
     if (!issueForm.stationId || !issueForm.desc) {
       alert('请选择站点并输入详细说明');
       return;
     }
-    alert('报错已提交，管理人员将尽快处理');
-    showIssueModal.value = false;
-    issueForm.desc = '';
+    try {
+        await api.post('/report', {
+            stationId: issueForm.stationId,
+            type: issueForm.type,
+            desc: issueForm.desc
+        });
+        alert('反馈已提交，管理人员将尽快处理');
+        showIssueModal.value = false;
+        issueForm.desc = '';
+    } catch (e: any) {
+        alert(e.response?.data?.message || '提交失败');
+    }
   };
 
   const startNav = (station: any) => {
     alert(`正在唤起导航前往: ${station.name}`);
   };
 
-  const reportFull = (station: any) => {
+  const reportFull = async (station: any) => {
     if (confirm(`确定要报告 "${station.name}" 已满吗？`)) {
-      station.status = 'full';
-      station.statusText = '已满';
-      alert('感谢您的反馈！');
+      try {
+          await api.post('/report', {
+              stationId: station.id,
+              type: 'full',
+              desc: '用户快速报告：站点已满'
+          });
+          alert('感谢您的反馈！');
+      } catch (e: any) {
+          alert(e.response?.data?.message || '提交失败');
+      }
     }
   };
 
   const editStation = (station: any) => {
-    alert(`编辑站点: ${station.name}`);
-  };
-
-  const deleteStation = (station: any) => {
-    if (confirm(`确定要删除站点 "${station.name}" 吗？`)) {
-      const index = mockStations.findIndex(s => s.id === station.id);
-      if (index > -1) mockStations.splice(index, 1);
+    // 简化版：只允许修改状态
+    // 这里可以扩展为弹出一个编辑模态框
+    // 暂时用 prompt 演示
+    const newStatus = prompt('修改状态 (normal/full/maintenance):', station.status);
+    if (newStatus && ['normal', 'full', 'maintenance'].includes(newStatus)) {
+        api.put(`/stations/${station.id}`, { status: newStatus }).then(() => {
+            alert('状态已更新');
+            fetchStations();
+        });
     }
   };
 
-  const approveAudit = (audit: any) => {
-    const newStation = {
-      id: Date.now(),
-      name: audit.name,
-      address: audit.address,
-      lng: 120.37 + Math.random() * 0.05,
-      lat: 36.06 + Math.random() * 0.05,
-      status: 'normal',
-      statusText: '正常运行'
-    };
-    mockStations.push(newStation);
-    const index = pendingAudits.findIndex(a => a.id === audit.id);
-    if (index > -1) pendingAudits.splice(index, 1);
-    alert('已通过申请并创建新站点');
+  const deleteStation = async (station: any) => {
+    if (confirm(`确定要删除站点 "${station.name}" 吗？`)) {
+      try {
+          await api.delete(`/stations/${station.id}`);
+          fetchStations();
+      } catch (e: any) {
+          alert(e.response?.data?.message || '删除失败');
+      }
+    }
   };
 
-  const rejectAudit = (audit: any) => {
-    const index = pendingAudits.findIndex(a => a.id === audit.id);
-    if (index > -1) pendingAudits.splice(index, 1);
-    alert('已拒绝该申请');
+  const approveAudit = async (audit: any) => {
+    try {
+        await api.post(`/audit/${audit.id}/approve`);
+        alert('已通过申请并创建新站点');
+        fetchAudits();
+        fetchStations();
+    } catch (e: any) {
+        alert(e.response?.data?.message || '操作失败');
+    }
+  };
+
+  const rejectAudit = async (audit: any) => {
+    if(!confirm('确定拒绝该申请吗？')) return;
+    try {
+        await api.post(`/audit/${audit.id}/reject`);
+        alert('已拒绝该申请');
+        fetchAudits();
+    } catch (e: any) {
+        alert(e.response?.data?.message || '操作失败');
+    }
+  };
+
+  const resolveReport = async (report: any) => {
+    try {
+        await api.post(`/report/${report.id}/resolve`);
+        alert('已标记为处理完成');
+        fetchReports();
+    } catch (e: any) {
+        alert(e.response?.data?.message || '操作失败');
+    }
   };
 
   onMounted(() => {
@@ -305,6 +423,7 @@ export function useMapLogic() {
     pendingAudits,
     pendingCount,
     errorCount,
+    errorReports, // Export this for template
     handleSearch,
     focusStation,
     submitReport,
@@ -316,6 +435,7 @@ export function useMapLogic() {
     editStation,
     deleteStation,
     approveAudit,
-    rejectAudit
+    rejectAudit,
+    resolveReport
   };
 }
