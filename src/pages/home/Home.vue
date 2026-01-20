@@ -2,10 +2,19 @@
   <div class="science-landing">
     <WaveBackground />
     
+    <!-- 海洋生物装饰 -->
+    <div class="marine-life">
+      <div class="creature whale">🐋</div>
+      <div class="creature turtle">🐢</div>
+      <div class="creature fish f1">🐟</div>
+      <div class="creature fish f2">🐠</div>
+      <div class="creature fish f3">🐡</div>
+    </div>
+
     <!-- 顶部导航 -->
-         <nav class="top-nav glass-panel">
+    <nav class="top-nav glass-panel">
       <div class="brand">
-        <img src="../assets/images/logo.png" alt="PureOcean Logo" class="logo-img" />
+        <img src="../../assets/images/logo.png" alt="PureOcean Logo" class="logo-img" />
         <span>PureOcean</span>
       </div>
       <div class="auth-group" v-if="!store.isLoggedIn">
@@ -19,22 +28,35 @@
     <!-- 英雄区 -->
     <header class="hero-section">
       <div class="hero-content fade-in">
-        <h1 class="main-title">守护蔚蓝，共筑未来</h1>
+        <h1 class="main-title">守护蔚蓝，<span class="highlight-text">共筑未来</span></h1>
         <p class="sub-title">PureOcean 致力于利用区块链与智能识别技术，构建透明、高效的海洋塑料回收生态系统。</p>
         
-        <div class="invitation-box glass-panel">
-          
-          <div class="invitation-text">
-            <p class="invite-msg">每一份努力，都是海洋的一份生机。</p>
-            <p class="invite-stats">已有 <strong>1,284</strong> 位志愿者在此守护海洋</p>
+        <div class="action-buttons">
+          <router-link to="/register" class="cta-btn primary-cta" v-if="!store.isLoggedIn">立即加入行动</router-link>
+          <a href="#science" class="cta-btn secondary-cta">探索海洋百科</a>
+        </div>
+
+        <div class="data-dashboard glass-panel">
+          <div class="data-item">
+            <span class="data-value">{{ oceanStats.plasticRemoved.toLocaleString() }}</span>
+            <span class="data-label">kg 已清理塑料</span>
           </div>
-          <router-link to="/register" class="invite-btn" v-if="!store.isLoggedIn">立即注册</router-link>
+          <div class="data-divider"></div>
+          <div class="data-item">
+            <span class="data-value">{{ oceanStats.volunteers.toLocaleString() }}</span>
+            <span class="data-label">位志愿者</span>
+          </div>
+          <div class="data-divider"></div>
+          <div class="data-item">
+            <span class="data-value">{{ oceanStats.speciesSaved }}</span>
+            <span class="data-label">种受护物种</span>
+          </div>
         </div>
       </div>
     </header>
 
     <!-- 科普内容区 -->
-    <main class="science-content">
+    <main class="science-content" id="science">
       <div class="section-header">
         <h2 class="section-title"> 海洋百科</h2>
         <p class="section-desc">了解海洋现状，掌握环保知识</p>
@@ -42,6 +64,7 @@
 
       <div class="wiki-grid">
         <div class="wiki-card video-card glass-panel fade-in" @click="openVideo('plastic_life')">
+          <div class="card-bg"></div>
           <div class="play-icon">▶</div>
           <div class="content-wrapper">
             <span class="category">短视频</span>
@@ -130,51 +153,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import WaveBackground from '../components/ocean/WaveBackground.vue';
-import { store } from '../stores';
-import { articles } from '../data/articles';
-import { videos } from '../data/videos';
-
-const showModal = ref(false);
-const showVideoModal = ref(false);
-const activeArticle = ref({
-  title: '',
-  category: '',
-  content: '',
-  date: '',
-  views: 0
-});
-const activeVideo = ref({
-  title: '',
-  videoUrl: ''
-});
-
-const openArticle = (id: string) => {
-  const article = articles[id];
-  if (article) {
-    activeArticle.value = article;
-    showModal.value = true;
-    document.body.style.overflow = 'hidden'; // 禁止背景滚动
-  }
-};
-
-const openVideo = (id: string) => {
-  const video = videos[id];
-  if (video) {
-    activeVideo.value = video;
-    showVideoModal.value = true;
-    document.body.style.overflow = 'hidden';
-  }
-};
-
-const closeModal = () => {
-  showModal.value = false;
-  showVideoModal.value = false;
-  document.body.style.overflow = ''; // 恢复背景滚动
-};
+import WaveBackground from '../../components/ocean/WaveBackground.vue';
+import {
+  store,
+  showModal,
+  showVideoModal,
+  activeArticle,
+  activeVideo,
+  oceanStats,
+  openArticle,
+  openVideo,
+  closeModal
+} from './Home';
 </script>
 
-<style scoped>
-@import '../assets/styles/home.css';
-</style>
+<style scoped src="./Home.css"></style>

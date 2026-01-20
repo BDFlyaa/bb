@@ -59,7 +59,19 @@
 }
 
 .btn-link.warning { color: #faad14; }
-.btn-link.danger { color: #ff4d4f; }
+.btn-link.danger { 
+  color: #ff4757; 
+  background: rgba(255, 71, 87, 0.1);
+  padding: 4px 10px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.btn-link.danger:hover {
+  background: rgba(255, 71, 87, 0.2);
+  color: #ff6b81;
+  text-decoration: none;
+}
 .btn-link:hover { text-decoration: underline; }
 
 /* 模态框扩展 */
@@ -91,7 +103,25 @@
 }
 
 .btn-success { background: #52c41a; color: white; }
-.btn-danger { background: #ff4d4f; color: white; }
+.btn-danger { 
+  background: rgba(255, 71, 87, 0.1); 
+  color: #ff4757; 
+  border: 1px solid rgba(255, 71, 87, 0.2);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #ff4757 0%, #ff6b81 100%);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+  border-color: #ff4757;
+}
 .btn-warning { background: #faad14; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
 .btn-info { background: #1890ff; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
 

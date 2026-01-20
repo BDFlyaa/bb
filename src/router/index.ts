@@ -5,7 +5,7 @@ import { store } from '../stores';
 import Login from '../pages/auth/Login.vue';
 import Register from '../pages/auth/Register.vue';
 import MainLayout from '../layouts/MainLayout.vue';
-import Home from '../pages/Home.vue';
+import Home from '../pages/home/Home.vue';
 import Statistics from '../pages/stats/Statistics.vue'; // 首页大屏
 
 const router = createRouter({

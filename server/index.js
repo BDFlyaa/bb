@@ -5,6 +5,7 @@ import sequelize from './db.js';
 import authRoutes from './routes/auth.js';
 import communityRoutes from './routes/community.js';
 import mapRoutes from './routes/map.js';
+import mallRoutes from './routes/mall.js';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/map', mapRoutes);
+app.use('/api/mall', mallRoutes);
 
 // 根路由测试
 app.get('/', (req, res) => {
@@ -32,9 +34,9 @@ async function startServer() {
     // force: false 不会删除现有的表，只会创建不存在的表
     // 如果需要更新表结构，可以暂时改为 true，但会清空数据
     // 注意：alter: true 在某些情况下会导致 "Too many keys specified" 错误，建议生产环境使用 migration
-    await sequelize.sync({ alter: false });
+    await sequelize.sync({ alter: true });
     console.log('Database synced successfully.');
-    
+
     app.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT}`);
     });

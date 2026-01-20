@@ -2,10 +2,19 @@ import sequelize from './db.js';
 import Task from './models/Task.js';
 import Post from './models/Post.js';
 import Ranking from './models/Ranking.js';
+import User from './models/User.js';
+import Product from './models/Product.js';
+import Order from './models/Order.js';
+import RecycleStation from './models/RecycleStation.js';
+import StationAudit from './models/StationAudit.js';
+import StationReport from './models/StationReport.js';
 
 const seedData = async () => {
   try {
+    // 禁用外键约束检查以便正确删除表
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
     await sequelize.sync({ force: true });
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
     console.log('Database synced for seeding.');
 
     // 种子任务
@@ -31,6 +40,16 @@ const seedData = async () => {
       { name: 'EcoLover', weight: 87.0 },
       { name: '张小强', weight: 64.8 },
       { name: '王大妈', weight: 52.1 },
+    ]);
+
+    // 种子商品
+    await Product.bulkCreate([
+      { name: '环保帆布袋', points: 500, icon: '👜', description: '100% 再生棉材质，经久耐用', category: 'daily', inventory: 50, status: 'active' },
+      { name: '再生塑料T恤', points: 1200, icon: '👕', description: '由 8 个回收塑料瓶拉丝织造', category: 'clothing', inventory: 20, status: 'active' },
+      { name: '竹制餐具套装', points: 350, icon: '🥢', description: '天然原竹，零废弃生活首选', category: 'daily', inventory: 8, status: 'active' },
+      { name: '种子纸明信片', points: 100, icon: '📮', description: '看完后埋入土中，可长出小花', category: 'other', inventory: 100, status: 'active' },
+      { name: '环保水杯', points: 800, icon: '🥤', description: '可降解材质，保温效果极佳', category: 'daily', inventory: 30, status: 'active' },
+      { name: '海洋主题徽章', points: 150, icon: '🏅', description: '精美金属徽章，展示环保态度', category: 'other', inventory: 200, status: 'active' },
     ]);
 
     console.log('Seed data imported successfully!');
