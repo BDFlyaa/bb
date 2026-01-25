@@ -334,7 +334,6 @@ import {
     recentActivities,
     rankings,
     weeklyTrend,
-    inventory,
     userStats,
     store,
     initStatistics

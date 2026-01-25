@@ -9,8 +9,10 @@ import {
   rejectCheckin,
   getStations,
   generateStationQR,
+  classifyRubbish,
   type PendingRecord,
-  type Station
+  type Station,
+  type RubbishItem
 } from '../../api/checkin';
 
 export function useCheckin() {
@@ -88,7 +90,17 @@ export function useCheckin() {
   const aiResult = ref(false);
   const isScanning = ref(false);
   const isAnalyzing = ref(false);
+
+  // 垃圾识别结果
+  const recognitionResult = ref<{
+    category: string;       // 垃圾分类（如：可回收垃圾）
+    rubbishName: string;    // 垃圾名称（如：塑料瓶）
+    confidence: number;     // 识别置信度
+    estimatedWeight: number; // 预估重量 (kg)
+    points: number;          // 获得积分
+  } | null>(null);
   const uploadedImageUrl = ref('');
+  const uploadedFile = ref<File | null>(null);
 
   // 历史记录
   const recentHistory = ref<any[]>([]);
@@ -97,6 +109,7 @@ export function useCheckin() {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       const file = input.files[0];
+      uploadedFile.value = file; // Store the raw File object
       const reader = new FileReader();
 
       reader.onload = (e) => {
@@ -109,13 +122,61 @@ export function useCheckin() {
     }
   };
 
-  const startAiAnalysis = () => {
+  const startAiAnalysis = async () => {
     isAnalyzing.value = true;
-    // 模拟 AI 识别延迟
-    setTimeout(() => {
+    recognitionResult.value = null;
+
+    if (!uploadedFile.value) {
+      showToast('请先选择图片', 'error');
       isAnalyzing.value = false;
-      aiResult.value = true;
-    }, 2000);
+      return;
+    }
+
+    try {
+      // 调用真实的垃圾识别 API（使用 File 对象）
+      const response = await classifyRubbish(uploadedFile.value);
+
+      if (response.success && response.data && response.data.elements.length > 0) {
+        const topResult = response.data.elements[0];
+
+        if (!topResult) {
+          showToast('识别结果为空，请重新拍照', 'error');
+          return;
+        }
+
+        // 根据分类计算积分和预估重量
+        const pointsMap: Record<string, number> = {
+          '可回收垃圾': 25,
+          '有害垃圾': 30,
+          '厨余垃圾': 15,
+          '其他垃圾': 10
+        };
+
+        const weightMap: Record<string, number> = {
+          '可回收垃圾': 0.45,
+          '有害垃圾': 0.2,
+          '厨余垃圾': 0.5,
+          '其他垃圾': 0.3
+        };
+
+        recognitionResult.value = {
+          category: topResult.category,
+          rubbishName: topResult.rubbish,
+          confidence: Math.round(topResult.rubbishScore * 100),
+          estimatedWeight: weightMap[topResult.category] || 0.3,
+          points: pointsMap[topResult.category] || 15
+        };
+
+        aiResult.value = true;
+      } else {
+        showToast(response.error || '无法识别该物品，请重新拍照', 'error');
+      }
+    } catch (error) {
+      console.error('AI recognition failed:', error);
+      showToast('识别服务暂时不可用，请稍后重试', 'error');
+    } finally {
+      isAnalyzing.value = false;
+    }
   };
 
   const triggerScan = () => {
@@ -167,23 +228,31 @@ export function useCheckin() {
   };
 
   const confirmCheckin = async () => {
+    if (!recognitionResult.value) {
+      showToast('请先进行垃圾识别', 'error');
+      return;
+    }
+
+    const { category, rubbishName, estimatedWeight, points } = recognitionResult.value;
+
     try {
       const res = await submitCheckin({
-        type: 'AI识别 (PET瓶)',
-        weight: 0.5, // 模拟重量
-        points: 25,
+        type: `AI识别 (${rubbishName})`,
+        weight: estimatedWeight,
+        points: points,
         imageUrl: uploadedImageUrl.value
       });
 
       if (res.success) {
-        showToast('打卡确认成功！积分 +25', 'success');
+        showToast(`打卡确认成功！积分 +${points}`, 'success');
         aiResult.value = false;
+        recognitionResult.value = null;
         // 添加记录
         recentHistory.value.unshift({
           id: Date.now(),
           station: '智能识别终端',
-          type: 'AI识别 (PET瓶)',
-          points: 25,
+          type: `AI识别 (${rubbishName})`,
+          points: points,
           time: '刚刚',
           status: 'success'
         });
@@ -361,6 +430,7 @@ export function useCheckin() {
     triggerScan,
     cancelScan,
     confirmCheckin,
+    recognitionResult,
     // 管理员
     activeTab,
     selectedStation,

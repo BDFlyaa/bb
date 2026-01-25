@@ -8,6 +8,7 @@ import mapRoutes from './routes/map.js';
 import mallRoutes from './routes/mall.js';
 import statsRoutes from './routes/stats.js';
 import checkinRoutes from './routes/checkin.js';
+import classifyRoutes from './routes/classify.js';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use('/api/map', mapRoutes);
 app.use('/api/mall', mallRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/checkin', checkinRoutes);
+app.use('/api/classify', classifyRoutes);
 
 // 根路由测试
 app.get('/', (req, res) => {

@@ -229,8 +229,8 @@ h3 {
   );
   box-shadow: 0 0 30px rgba(0, 229, 255, 0.1);
   animation: pieSpin 20s linear infinite;
-  mask: radial-gradient(transparent 60%, black 61%);
   -webkit-mask: radial-gradient(transparent 60%, black 61%);
+  mask: radial-gradient(transparent 60%, black 61%);
 }
 
 .inner-circle {

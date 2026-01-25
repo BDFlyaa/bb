@@ -82,19 +82,23 @@
                 <div class="tech-border"></div>
                 <img :src="uploadedImageUrl || '../../assets/images/1.jpg'" alt="Preview" />
               </div>
-              <div class="info-list">
+              <div class="info-list" v-if="recognitionResult">
+                <div class="info-item">
+                  <span class="label">垃圾分类</span>
+                  <span class="value category-tag">{{ recognitionResult.category }}</span>
+                </div>
                 <div class="info-item">
                   <span class="label">识别种类</span>
-                  <span class="value">PET 塑料瓶 (透明)</span>
+                  <span class="value">{{ recognitionResult.rubbishName }} ({{ recognitionResult.confidence }}%)</span>
                 </div>
                 <div class="info-item">
                   <span class="label">预估重量</span>
-                  <span class="value">0.45 kg</span>
+                  <span class="value">{{ recognitionResult.estimatedWeight }} kg</span>
                 </div>
                 <div class="info-item highlight-item">
                   <span class="label">获得积分</span>
                   <span class="value highlight">
-                    +25 
+                    +{{ recognitionResult.points }} 
                     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><line x1="12" y1="18" x2="12" y2="2"></line></svg>
                   </span>
                 </div>
@@ -387,6 +391,7 @@ const {
     triggerScan,
     cancelScan,
     confirmCheckin,
+    recognitionResult,
     // 管理员
   activeTab,
   selectedStation,

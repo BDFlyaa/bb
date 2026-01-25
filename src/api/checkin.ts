@@ -200,3 +200,40 @@ export const submitForReview = async (data: CheckinData): Promise<CheckinRespons
     return { success: false, message: '提交审核失败', points: 0, record: null };
   }
 };
+
+// ==================== 垃圾识别 API ====================
+
+export interface RubbishItem {
+  category: string;          // 分类类别
+  categoryScore: number;     // 分类置信度
+  rubbish: string;           // 垃圾名称
+  rubbishScore: number;      // 识别置信度
+}
+
+export interface ClassifyRubbishResponse {
+  success: boolean;
+  data?: {
+    sensitive: boolean;
+    elements: RubbishItem[];
+  };
+  requestId?: string;
+  error?: string;
+}
+
+// 垃圾分类识别
+export const classifyRubbish = async (image: File): Promise<ClassifyRubbishResponse> => {
+  try {
+    const formData = new FormData();
+    formData.append('image', image);
+
+    return await request.post<any, ClassifyRubbishResponse>('/classify/rubbish', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  } catch (error) {
+    console.warn('Classify rubbish failed:', error);
+    return { success: false, error: '识别服务暂时不可用' };
+  }
+};
+
