@@ -16,7 +16,7 @@ export const store = reactive({
   isLoading: false,
   isLoggedIn: !!localStorage.getItem('token'),
   token: localStorage.getItem('token') || '',
-  user: JSON.parse(localStorage.getItem('user') || '{"name": "User", "role": "volunteer", "points": 0}'),
+  user: JSON.parse(localStorage.getItem('user') || '{"id": 0, "name": "User", "role": "volunteer", "points": 0}'),
   
   // 是否为管理员
   get isAdmin() {
@@ -39,6 +39,7 @@ export const store = reactive({
       this.isLoggedIn = true;
       this.token = token;
       this.user = {
+        id: user.userId || user.id, // 兼容不同后端返回字段
         name: user.username,
         role: user.role, // 保持原始英文代码
         points: user.points
@@ -89,6 +90,37 @@ export const store = reactive({
     if (this.user) {
       this.user.points = (this.user.points || 0) + amount;
       localStorage.setItem('user', JSON.stringify(this.user));
+    }
+  },
+
+  // 设置积分（绝对值）
+  setPoints(points: number) {
+    if (this.user) {
+      this.user.points = points;
+      localStorage.setItem('user', JSON.stringify(this.user));
+    }
+  },
+
+  // 从服务器同步最新的用户信息
+  async fetchUserProfile() {
+    if (!this.isLoggedIn) return;
+    
+    try {
+      const response = await axios.get(`${API_URL}/me`, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      });
+      const userData = response.data;
+      
+      this.user = {
+        id: userData.id,
+        name: userData.username,
+        role: userData.role,
+        points: userData.points
+      };
+      
+      localStorage.setItem('user', JSON.stringify(this.user));
+    } catch (error) {
+      console.error('获取用户信息失败:', error);
     }
   },
 

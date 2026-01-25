@@ -88,6 +88,9 @@ const fetchAdminOrders = async () => {
 
 // 初始化函数 - 必须在组件的 setup 或 onMounted 中调用
 const initMall = async () => {
+  if (store.isLoggedIn) {
+    await store.fetchUserProfile();
+  }
   await fetchProducts();
   if (store.isLoggedIn) {
     await fetchOrders();

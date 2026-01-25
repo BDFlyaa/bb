@@ -31,6 +31,9 @@ export function useMapLogic() {
   const showIssueModal = ref(false);
   const showAuditModal = ref(false);
   const showErrorListModal = ref(false);
+  const showEditModal = ref(false);
+  const showDeleteModal = ref(false);
+  const deleteTarget = ref<any>(null);
   const isPickingLocation = ref(false);
   const loading = ref(true);
   const searchKey = ref('');
@@ -40,6 +43,13 @@ export function useMapLogic() {
     address: '',
     lng: null as number | null,
     lat: null as number | null
+  });
+
+  const editForm = reactive({
+    id: 0,
+    name: '',
+    address: '',
+    status: 'normal'
   });
 
   const issueForm = reactive({
@@ -343,26 +353,41 @@ export function useMapLogic() {
   };
 
   const editStation = (station: any) => {
-    // 简化版：只允许修改状态
-    // 这里可以扩展为弹出一个编辑模态框
-    // 暂时用 prompt 演示
-    const newStatus = prompt('修改状态 (normal/full/maintenance):', station.status);
-    if (newStatus && ['normal', 'full', 'maintenance'].includes(newStatus)) {
-        api.put(`/stations/${station.id}`, { status: newStatus }).then(() => {
-            alert('状态已更新');
-            fetchStations();
+    editForm.id = station.id;
+    editForm.name = station.name;
+    editForm.address = station.address;
+    editForm.status = station.status;
+    showEditModal.value = true;
+  };
+
+  const submitEdit = async () => {
+    try {
+        await api.put(`/stations/${editForm.id}`, { 
+            name: editForm.name,
+            address: editForm.address,
+            status: editForm.status 
         });
+        showEditModal.value = false;
+        fetchStations();
+    } catch (e: any) {
+        alert(e.response?.data?.message || '更新失败');
     }
   };
 
-  const deleteStation = async (station: any) => {
-    if (confirm(`确定要删除站点 "${station.name}" 吗？`)) {
-      try {
-          await api.delete(`/stations/${station.id}`);
-          fetchStations();
-      } catch (e: any) {
-          alert(e.response?.data?.message || '删除失败');
-      }
+  const deleteStation = (station: any) => {
+    deleteTarget.value = station;
+    showDeleteModal.value = true;
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget.value) return;
+    try {
+        await api.delete(`/stations/${deleteTarget.value.id}`);
+        fetchStations();
+        showDeleteModal.value = false;
+        deleteTarget.value = null;
+    } catch (e: any) {
+        alert(e.response?.data?.message || '删除失败');
     }
   };
 
@@ -398,6 +423,18 @@ export function useMapLogic() {
     }
   };
 
+  const formatDate = (isoString: string) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
   onMounted(() => {
     initMap();
   });
@@ -414,10 +451,12 @@ export function useMapLogic() {
     showIssueModal,
     showAuditModal,
     showErrorListModal,
+    showEditModal,
     isPickingLocation,
     loading,
     searchKey,
     reportForm,
+    editForm,
     issueForm,
     mockStations,
     pendingAudits,
@@ -428,14 +467,19 @@ export function useMapLogic() {
     focusStation,
     submitReport,
     submitIssue,
+    submitEdit,
     startPicking,
     cancelPicking,
     startNav,
     reportFull,
     editStation,
     deleteStation,
+    confirmDelete,
+    deleteTarget,
+    showDeleteModal,
     approveAudit,
     rejectAudit,
-    resolveReport
+    resolveReport,
+    formatDate
   };
 }

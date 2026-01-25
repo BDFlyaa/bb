@@ -4,12 +4,18 @@
     <div v-if="!isAdmin">
       <div class="header-section">
         <div class="title-area">
-          <h2>🎁 积分商城</h2>
+          <h2>
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 8px;"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+            积分商城
+          </h2>
           <p>用您的环保贡献换取精美礼品</p>
         </div>
         <div class="user-status glass-panel">
           <span class="label">我的积分</span>
-          <span class="value">{{ store.user.points || 0 }} 🪙</span>
+          <span class="value">
+            {{ store.user.points || 0 }} 
+            <svg xmlns="http://www.w3.org/2000/svg" width="0.8em" height="0.8em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-left: 2px;"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><line x1="12" y1="18" x2="12" y2="2"></line></svg>
+          </span>
         </div>
       </div>
 
@@ -42,7 +48,10 @@
               仅剩 {{ item.inventory }} 件
             </div>
             <div class="price-row">
-              <span class="points">{{ item.points }} 🪙</span>
+              <span class="points">
+                {{ item.points }} 
+                <svg xmlns="http://www.w3.org/2000/svg" width="0.8em" height="0.8em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-left: 2px;"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><line x1="12" y1="18" x2="12" y2="2"></line></svg>
+              </span>
               <button 
                 class="btn-primary btn-sm" 
                 :disabled="item.inventory <= 0 || (store.user.points || 0) < item.points"
@@ -60,20 +69,27 @@
     <div v-else>
       <div class="header-section">
         <div class="title-area">
-          <h2>📦 商城运维中心</h2>
+          <h2>
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 8px;"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            商城运维中心
+          </h2>
           <div class="admin-tabs">
             <button 
               :class="['tab-btn', { active: activeTab === 'products' }]" 
               @click="activeTab = 'products'"
             >
-              <span class="tab-icon">🛍️</span>
+              <span class="tab-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+              </span>
               商品管理
             </button>
             <button 
               :class="['tab-btn', { active: activeTab === 'orders' }]" 
               @click="activeTab = 'orders'"
             >
-              <span class="tab-icon">📋</span>
+              <span class="tab-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+              </span>
               订单处理 
               <span class="badge" v-if="pendingOrders > 0">{{ pendingOrders }}</span>
             </button>
@@ -160,7 +176,10 @@
     <div v-if="showAddProductModal" class="modal-overlay" @click.self="closeAddProductModal">
       <div class="modal-content glass-panel">
         <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-          <h3 style="margin: 0;">✨ 上架新商品</h3>
+          <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            上架新商品
+          </h3>
           <button style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;" @click="closeAddProductModal">×</button>
         </div>
         
@@ -214,7 +233,9 @@
             <div class="image-upload-area" v-if="!previewImage">
               <input type="file" id="product-image-upload" accept="image/*" @change="handleFileChange">
               <div class="upload-placeholder">
-                <span class="upload-icon">📷</span>
+                <span class="upload-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                </span>
                 <span>点击上传商品图片</span>
                 <span style="font-size: 0.8rem; opacity: 0.7">(支持 JPG, PNG, GIF，最大 2MB)</span>
               </div>
@@ -225,7 +246,7 @@
               <button class="preview-remove-btn" @click="removePreview">×</button>
             </div>
             <div class="error-msg" v-if="formErrors.icon">{{ formErrors.icon }}</div>
-            <div v-if="!previewImage" style="margin-top: 5px; font-size: 0.8rem; color: #aaa;">* 未上传将使用默认图标 🎁</div>
+            <div v-if="!previewImage" style="margin-top: 5px; font-size: 0.8rem; color: #aaa;">* 未上传将使用默认图标</div>
           </div>
 
           <div class="form-group">
@@ -255,17 +276,30 @@
           <button style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;" @click="showMyOrders = false">×</button>
         </div>
         <div class="order-list" v-if="myOrders.length > 0">
-          <div v-for="order in myOrders" :key="order.id" class="order-item">
-            <div class="icon">
-              <img v-if="order.icon && (order.icon.startsWith('data:image') || order.icon.startsWith('http'))" :src="order.icon" style="width:40px; height:40px; object-fit:cover; border-radius:4px;" alt="icon">
-              <span v-else>{{ order.icon && order.icon.length < 50 ? order.icon : '📦' }}</span>
-            </div>
-            <div class="info">
-              <p class="name">{{ order.name }}</p>
-              <p class="time">{{ order.time }}</p>
-            </div>
-            <span class="status success">兑换成功</span>
-          </div>
+          <table class="my-orders-table">
+            <thead>
+              <tr>
+                <th>商品信息</th>
+                <th>兑换时间</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in myOrders" :key="order.id">
+                <td>
+                  <div class="product-info-cell">
+                    <div class="icon">
+                      <img v-if="order.icon && (order.icon.startsWith('data:image') || order.icon.startsWith('http'))" :src="order.icon" style="width:40px; height:40px; object-fit:cover; border-radius:4px;" alt="icon">
+                      <span v-else>{{ order.icon && order.icon.length < 50 ? order.icon : '📦' }}</span>
+                    </div>
+                    <span class="name">{{ order.name }}</span>
+                  </div>
+                </td>
+                <td>{{ order.time }}</td>
+                <td><span class="status success">兑换成功</span></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         <div v-else class="empty-state">
           <p>暂无兑换记录</p>
@@ -276,8 +310,9 @@
     <!-- 确认操作模态框 -->
     <div v-if="showConfirmModal" class="modal-overlay" style="z-index: 9999;" @click.self="closeConfirmModal">
       <div class="modal-content glass-panel" style="max-width: 400px; text-align: center;">
-        <div style="font-size: 3rem; margin-bottom: 10px;">
-          {{ confirmData.type === 'warning' ? '⚠️' : '🌊' }}
+        <div style="font-size: 3rem; margin-bottom: 10px; display: flex; justify-content: center;">
+          <svg v-if="confirmData.type === 'warning'" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ffcc00;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <svg v-else xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #00b4db;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
         </div>
         <h3 style="margin-bottom: 15px;">{{ confirmData.title }}</h3>
         <p style="margin-bottom: 25px; color: #eee; line-height: 1.5;">{{ confirmData.message }}</p>

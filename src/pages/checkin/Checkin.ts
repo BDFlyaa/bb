@@ -1,7 +1,17 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { store } from '../../stores';
-import img1 from '../../assets/images/1.jpg';
-import img2 from '../../assets/images/2.jpg';
+import {
+  submitCheckin,
+  getCheckinHistory,
+  getAuditStats,
+  getPendingRecords,
+  approveCheckin,
+  rejectCheckin,
+  getStations,
+  generateStationQR,
+  type PendingRecord,
+  type Station
+} from '../../api/checkin';
 
 export function useCheckin() {
   const isAdmin = computed(() => store.isAdmin);
@@ -9,7 +19,7 @@ export function useCheckin() {
   // --- 通用状态 ---
   const currentTime = ref('');
   const timeTimer = ref<any>(null);
-  
+
   // 更新时间
   const updateTime = () => {
     const now = new Date();
@@ -26,9 +36,34 @@ export function useCheckin() {
     return '晚上好';
   });
 
+  const loadHistory = async () => {
+    try {
+      const res = await getCheckinHistory();
+      if (res.success) {
+        recentHistory.value = res.data.map((item: any) => ({
+          id: item.id,
+          station: item.station?.name || '未知站点',
+          type: item.type,
+          points: item.points,
+          time: new Date(item.createdAt).toLocaleString(),
+          status: item.status === 'approved' ? 'success' : 'pending'
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load history:', error);
+    }
+  };
+
   onMounted(() => {
     updateTime();
     timeTimer.value = setInterval(updateTime, 1000);
+    if (!isAdmin.value) {
+      loadHistory();
+    } else {
+      // 管理员加载审核数据
+      loadAuditData();
+      loadStations();
+    }
   });
 
   onUnmounted(() => {
@@ -55,24 +90,21 @@ export function useCheckin() {
   const isAnalyzing = ref(false);
   const uploadedImageUrl = ref('');
 
-  // 模拟志愿者历史记录
-  const recentHistory = ref([
-    { id: 101, station: '五四广场回收点', type: '扫码打卡', points: 10, time: '今日 10:23', status: 'success' },
-    { id: 102, station: '八大关环保站', type: 'AI识别 (PET瓶)', points: 25, time: '昨日 15:40', status: 'success' },
-  ]);
+  // 历史记录
+  const recentHistory = ref<any[]>([]);
 
   const handleFileChange = (event: Event) => {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       const file = input.files[0];
       const reader = new FileReader();
-      
+
       reader.onload = (e) => {
         uploadedImageUrl.value = e.target?.result as string;
         // Start analysis after loading image
         startAiAnalysis();
       };
-      
+
       reader.readAsDataURL(file);
     }
   };
@@ -89,21 +121,42 @@ export function useCheckin() {
   const triggerScan = () => {
     isScanning.value = true;
     // 模拟扫码过程，增加一点时间让用户看到扫描动画
-    setTimeout(() => {
+    setTimeout(async () => {
       if (isScanning.value) { // 检查是否中途取消
-        isScanning.value = false;
-        showToast('扫码成功！已自动签到', 'success');
-        // 添加一条记录
-        recentHistory.value.unshift({
-          id: Date.now(),
-          station: '湛山街道回收站',
-          type: '扫码打卡',
-          points: 10,
-          time: '刚刚',
-          status: 'success'
-        });
-        // 增加积分
-        store.user.points += 10;
+        try {
+          // 调用后端接口
+          const res = await submitCheckin({
+            type: '扫码打卡',
+            weight: 0.2, // 模拟重量
+            points: 10,
+            stationId: '1' // 模拟站点 ID
+          });
+
+          isScanning.value = false;
+
+          if (res.success) {
+            showToast('扫码成功！已自动签到', 'success');
+            // 添加一条记录
+            recentHistory.value.unshift({
+              id: Date.now(),
+              station: '湛山街道回收站',
+              type: '扫码打卡',
+              points: 10,
+              time: '刚刚',
+              status: 'success'
+            });
+            // 更新积分
+            if (store.user) {
+              store.setPoints(res.points);
+            }
+          } else {
+            showToast('扫码失败: ' + res.message, 'error');
+          }
+        } catch (error) {
+          isScanning.value = false;
+          showToast('打卡请求失败，请重试', 'error');
+          console.error(error);
+        }
       }
     }, 3000);
   };
@@ -113,51 +166,132 @@ export function useCheckin() {
     showToast('已取消扫描', 'info');
   };
 
-  const confirmCheckin = () => {
-    showToast('打卡确认成功！积分 +25', 'success');
-    aiResult.value = false;
-    // 添加记录
-    recentHistory.value.unshift({
-      id: Date.now(),
-      station: '智能识别终端',
-      type: 'AI识别 (PET瓶)',
-      points: 25,
-      time: '刚刚',
-      status: 'success'
-    });
-    store.user.points += 25;
+  const confirmCheckin = async () => {
+    try {
+      const res = await submitCheckin({
+        type: 'AI识别 (PET瓶)',
+        weight: 0.5, // 模拟重量
+        points: 25,
+        imageUrl: uploadedImageUrl.value
+      });
+
+      if (res.success) {
+        showToast('打卡确认成功！积分 +25', 'success');
+        aiResult.value = false;
+        // 添加记录
+        recentHistory.value.unshift({
+          id: Date.now(),
+          station: '智能识别终端',
+          type: 'AI识别 (PET瓶)',
+          points: 25,
+          time: '刚刚',
+          status: 'success'
+        });
+        // 更新积分
+        if (store.user) {
+          store.setPoints(res.points);
+        }
+      } else {
+        showToast('打卡失败: ' + res.message, 'error');
+      }
+    } catch (error) {
+      showToast('提交失败，请重试', 'error');
+      console.error(error);
+    }
   };
 
   // --- 管理员逻辑 ---
   const activeTab = ref('audit');
-  const selectedStation = ref('1');
+  const selectedStation = ref('');
   const qrCodeUrl = ref('');
+  const currentQRStationName = ref('');
+  const stations = ref<Station[]>([]);
+  const isLoadingStations = ref(false);
+  const isLoadingAudit = ref(false);
 
-  const generateQR = () => {
-    qrCodeUrl.value = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PureOcean_Station_001';
-    showToast('站点二维码已生成', 'success');
+  // 加载站点列表
+  const loadStations = async () => {
+    isLoadingStations.value = true;
+    try {
+      const res = await getStations();
+      if (res.success && res.data && res.data.length > 0) {
+        stations.value = res.data;
+        const firstStation = res.data[0];
+        if (firstStation) {
+          selectedStation.value = firstStation.id.toString();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load stations:', error);
+    } finally {
+      isLoadingStations.value = false;
+    }
+  };
+
+  const generateQR = async () => {
+    if (!selectedStation.value) {
+      showToast('请选择站点', 'error');
+      return;
+    }
+    try {
+      const res = await generateStationQR(parseInt(selectedStation.value));
+      if (res.success) {
+        qrCodeUrl.value = res.data.qrCodeUrl;
+        currentQRStationName.value = res.data.stationName;
+        showToast('站点二维码已生成', 'success');
+      } else {
+        showToast('生成二维码失败', 'error');
+      }
+    } catch (error) {
+      showToast('生成二维码失败', 'error');
+    }
   };
 
   const downloadQR = () => {
-    showToast('海报下载任务已开始', 'info');
+    if (qrCodeUrl.value) {
+      const link = document.createElement('a');
+      link.href = qrCodeUrl.value;
+      link.download = `PureOcean_${currentQRStationName.value || 'Station'}_QR.png`;
+      link.click();
+      showToast('海报下载已开始', 'info');
+    }
   };
 
-  // 模拟审核数据
-  const mockRecords = ref([
-    { id: 1, user: '王小明', img: img1, aiResult: 'PET瓶 0.5kg', time: '10-26 14:20' },
-    { id: 2, user: '陈美美', img: img2, aiResult: '混合塑料 1.2kg', time: '10-26 15:10' },
-    { id: 3, user: '李强', img: img1, aiResult: '易拉罐 0.3kg', time: '10-26 16:05' },
-    { id: 4, user: '张伟', img: img2, aiResult: '纸板 2.1kg', time: '10-26 16:45' }
-  ]);
+  // 待审核记录
+  const pendingRecords = ref<PendingRecord[]>([]);
 
-  // 统计数据
-  const auditStats = computed(() => {
-    return {
-      pending: mockRecords.value.length,
-      approved: 128, // 模拟数据
-      rejected: 12   // 模拟数据
-    };
+  // 加载审核数据
+  const loadAuditData = async () => {
+    isLoadingAudit.value = true;
+    try {
+      const [statsRes, recordsRes] = await Promise.all([
+        getAuditStats(),
+        getPendingRecords()
+      ]);
+
+      if (statsRes.success) {
+        auditStatsData.value = statsRes.data;
+      }
+
+      if (recordsRes.success) {
+        pendingRecords.value = recordsRes.data;
+      }
+    } catch (error) {
+      console.error('Failed to load audit data:', error);
+    } finally {
+      isLoadingAudit.value = false;
+    }
+  };
+
+  // 审核统计数据
+  const auditStatsData = ref({
+    pending: 0,
+    approved: 0,
+    rejected: 0
   });
+
+  // 统计数据 (使用真实数据)
+  const auditStats = computed(() => auditStatsData.value);
 
   // 图片预览模态框
   const previewImageState = ref({
@@ -165,21 +299,41 @@ export function useCheckin() {
     url: ''
   });
 
-  const approve = (record: any) => {
-    showToast(`已通过 ${record.user} 的申请`, 'success');
-    // 增加延迟模拟网络请求
-    setTimeout(() => {
-      mockRecords.value = mockRecords.value.filter(r => r.id !== record.id);
-    }, 300);
+  const approve = async (record: any) => {
+    try {
+      const res = await approveCheckin(record.id);
+      if (res.success) {
+        showToast(`已通过 ${record.user} 的申请`, 'success');
+        // 从列表中移除
+        pendingRecords.value = pendingRecords.value.filter(r => r.id !== record.id);
+        // 更新统计
+        auditStatsData.value.pending = Math.max(0, auditStatsData.value.pending - 1);
+        auditStatsData.value.approved += 1;
+      } else {
+        showToast(res.message || '审核失败', 'error');
+      }
+    } catch (error) {
+      showToast('审核失败，请重试', 'error');
+    }
   };
 
-  const reject = (record: any) => {
+  const reject = async (record: any) => {
     if (confirm(`确定要驳回 ${record.user} 的打卡申请吗？`)) {
-      showToast('申请已驳回', 'info');
-      // 增加延迟模拟网络请求
-      setTimeout(() => {
-        mockRecords.value = mockRecords.value.filter(r => r.id !== record.id);
-      }, 300);
+      try {
+        const res = await rejectCheckin(record.id);
+        if (res.success) {
+          showToast('申请已驳回', 'info');
+          // 从列表中移除
+          pendingRecords.value = pendingRecords.value.filter(r => r.id !== record.id);
+          // 更新统计
+          auditStatsData.value.pending = Math.max(0, auditStatsData.value.pending - 1);
+          auditStatsData.value.rejected += 1;
+        } else {
+          showToast(res.message || '驳回失败', 'error');
+        }
+      } catch (error) {
+        showToast('驳回失败，请重试', 'error');
+      }
     }
   };
 
@@ -211,14 +365,18 @@ export function useCheckin() {
     activeTab,
     selectedStation,
     qrCodeUrl,
+    currentQRStationName,
+    stations,
     generateQR,
     downloadQR,
-    mockRecords,
+    pendingRecords,
     auditStats,
     previewImageState,
     approve,
     reject,
     previewImg,
-    closePreview
+    closePreview,
+    isLoadingAudit,
+    loadAuditData
   };
 }

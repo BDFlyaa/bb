@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -75,6 +76,26 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('登录错误:', error);
+    res.status(500).json({ message: '服务器内部错误' });
+  }
+});
+
+// 获取当前用户信息接口
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+    
+    res.json({
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      points: user.points
+    });
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
     res.status(500).json({ message: '服务器内部错误' });
   }
 });

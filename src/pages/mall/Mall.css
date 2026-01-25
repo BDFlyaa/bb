@@ -369,22 +369,65 @@ button:disabled {
   gap: 15px;
 }
 
-.order-item {
+.my-orders-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.my-orders-table th {
+  padding: 12px 20px;
+  color: #888;
+  font-weight: 500;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
+}
+
+.my-orders-table th:first-child {
+  text-align: left;
+}
+
+.my-orders-table td {
+  padding: 16px 20px;
+  vertical-align: middle;
+  background: rgba(255, 255, 255, 0.05);
+  text-align: center;
+}
+
+.my-orders-table td:first-child {
+  text-align: left;
+  border-radius: 8px 0 0 8px;
+}
+
+.my-orders-table td:nth-child(2) {
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.my-orders-table td:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.product-info-cell {
   display: flex;
   align-items: center;
   gap: 15px;
-  padding: 15px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
 }
 
-.order-item .icon { font-size: 2rem; }
-.order-item .info { flex: 1; }
-.order-item .info .name { font-weight: bold; }
-.order-item .info .time { font-size: 0.8rem; color: #666; }
-.order-item .status { font-size: 0.8rem; padding: 2px 8px; border-radius: 4px; }
-.order-item .status.shipped { background: rgba(82, 196, 26, 0.1); color: #52c41a; }
-.order-item .status.success { background: rgba(82, 196, 26, 0.1); color: #52c41a; }
+.product-info-cell .icon {
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+}
+
+.product-info-cell .name {
+  font-weight: bold;
+}
+
+.status { font-size: 0.8rem; padding: 2px 8px; border-radius: 4px; }
+.status.shipped { background: rgba(82, 196, 26, 0.1); color: #52c41a; }
+.status.success { background: rgba(82, 196, 26, 0.1); color: #52c41a; }
 
 .empty-state {
   text-align: center;
@@ -405,6 +448,7 @@ button:disabled {
 }
 
 .form-input, .form-select, .form-textarea {
+  box-sizing: border-box;
   width: 100%;
   padding: 12px 15px;
   background: rgba(255, 255, 255, 0.05);
@@ -413,6 +457,11 @@ button:disabled {
   color: #fff;
   font-size: 1rem;
   transition: all 0.3s;
+}
+
+.form-select option {
+  background: #1a1a1a;
+  color: #fff;
 }
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
