@@ -22,7 +22,7 @@ export const authenticateToken = (req, res, next) => {
 };
 
 export const requireAdmin = (req, res, next) => {
-  if (req.user.role !== 'system_admin' && req.user.role !== 'recycle_admin') {
+  if (req.user.role !== 'system_admin') {
     return res.status(403).json({ message: 'Access denied. Admin only.' });
   }
   next();

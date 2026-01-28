@@ -63,6 +63,17 @@ router.post('/rubbish', upload.single('image'), async (req, res) => {
         data: result.data,
         requestId: result.requestId
       });
+    } catch (apiError) {
+      // 详细记录阿里云 API 错误
+      console.error('=== 阿里云 API 调用失败 ===');
+      console.error('错误名称:', apiError.name);
+      console.error('错误代码:', apiError.code);
+      console.error('错误消息:', apiError.message);
+      if (apiError.data) {
+        console.error('错误数据:', JSON.stringify(apiError.data, null, 2));
+      }
+      console.error('完整错误:', apiError);
+      throw apiError;
     } finally {
       // 清理临时文件
       fs.unlink(filePath, (err) => {

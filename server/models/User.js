@@ -25,12 +25,17 @@ const User = sequelize.define('User', {
     allowNull: false,
   },
   role: {
-    type: DataTypes.ENUM('volunteer', 'recycle_admin', 'system_admin'),
+    type: DataTypes.ENUM('volunteer', 'system_admin'),
     defaultValue: 'volunteer',
   },
   points: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
+  },
+  mutedUntil: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: null,
   }
 }, {
   timestamps: true,

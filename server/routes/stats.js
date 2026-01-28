@@ -94,7 +94,7 @@ router.get('/rankings', async (req, res) => {
 
         const formattedRankings = rankings.map(r => ({
             name: r.user?.username || '匿名用户',
-            score: parseFloat(r.dataValues.totalWeight || 0)
+            score: parseFloat((parseFloat(r.dataValues.totalWeight || 0)).toFixed(2))
         }));
 
         res.json(formattedRankings);
@@ -132,7 +132,7 @@ router.get('/weekly-trend', async (req, res) => {
 
             const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
             days.push(weekdays[date.getDay()]);
-            results.push(parseFloat(dayResult?.dataValues?.dayWeight || 0));
+            results.push(parseFloat((parseFloat(dayResult?.dataValues?.dayWeight || 0)).toFixed(2)));
         }
 
         res.json({ days, weights: results });
@@ -225,6 +225,47 @@ router.get('/inventory', async (req, res) => {
         });
     } catch (error) {
         console.error('获取库存数据失败:', error);
+        res.status(500).json({ message: '服务器内部错误' });
+    }
+});
+
+// 完成任务并获取积分
+router.post('/complete-task', authenticateToken, async (req, res) => {
+    try {
+        const { userId, taskId } = req.body;
+
+        if (!userId || !taskId) {
+            return res.status(400).json({ message: '缺少参数' });
+        }
+
+        // 任务奖励映射
+        const taskRewards = {
+            1: { points: 50, desc: '完成一次塑料瓶回收' },
+            2: { points: 200, desc: '参与海滩清洁活动' },
+            3: { points: 100, desc: '邀请一位好友加入' }
+        };
+
+        const reward = taskRewards[taskId];
+        if (!reward) {
+            return res.status(400).json({ message: '无效的任务ID' });
+        }
+
+        // 更新用户积分
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ message: '用户不存在' });
+        }
+
+        user.points = (user.points || 0) + reward.points;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: `任务完成！获得 ${reward.points} 积分`,
+            newPoints: user.points
+        });
+    } catch (error) {
+        console.error('完成任务失败:', error);
         res.status(500).json({ message: '服务器内部错误' });
     }
 });

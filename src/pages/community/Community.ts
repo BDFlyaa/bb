@@ -64,7 +64,7 @@ export const modal = ref({
   show: false,
   title: '',
   message: '',
-  onConfirm: () => {}
+  onConfirm: () => { }
 });
 
 export const openModal = (title: string, message: string, onConfirm: () => void) => {
@@ -124,7 +124,7 @@ export const formatTime = (timeStr?: string) => {
   const date = new Date(timeStr);
   const now = new Date();
   const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
+
   if (diff < 60) return '刚刚';
   if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
@@ -135,13 +135,14 @@ export const formatTime = (timeStr?: string) => {
 export const fetchData = async () => {
   isLoading.value = true;
   try {
+    const username = store.user.name || '';
     // 改为分别获取，避免一个接口失败导致全部不显示
-    const fetchTasks = axios.get(`${API_BASE}/tasks`).then(res => {
-      tasks.value = res.data.map((t: any) => ({ ...t, isJoined: false }));
+    const fetchTasks = axios.get(`${API_BASE}/tasks`, { params: { username } }).then(res => {
+      tasks.value = res.data.map((t: any) => ({ ...t, isJoined: t.isJoined || false }));
     }).catch(e => console.error('任务加载失败:', e));
     const fetchFeed = axios.get(`${API_BASE}/feed`).then(res => {
-      feed.value = res.data.map((p: any) => ({ 
-        ...p, 
+      feed.value = res.data.map((p: any) => ({
+        ...p,
         isLiked: false,
         comments: p.comments || [],
         showComments: false,
@@ -149,9 +150,9 @@ export const fetchData = async () => {
       }));
     }).catch(e => console.error('动态加载失败:', e));
     const fetchRankings = axios.get(`${API_BASE}/rankings`).then(res => rankings.value = res.data).catch(e => console.error('排行加载失败:', e));
-    
+
     await Promise.all([fetchTasks, fetchFeed, fetchRankings]);
-    
+
     if (tasks.value.length === 0 && feed.value.length === 0 && rankings.value.length === 0) {
       showToast('暂无海域数据，请稍后再试', 'info');
     }
@@ -164,25 +165,39 @@ export const fetchData = async () => {
 };
 
 // 交互逻辑
-export const joinTask = (task: Task) => {
-  task.isJoined = true;
-  showToast(`成功加入任务：“${task.title}”！`);
+export const joinTask = async (task: Task) => {
+  try {
+    const username = store.user.name || '志愿者';
+    await axios.post(`${API_BASE}/tasks/${task.id}/join`, { username });
+    task.isJoined = true;
+    showToast(`成功加入任务：“${task.title}”！`);
+  } catch (error: any) {
+    console.error('报名失败:', error);
+    showToast(error.response?.data?.message || '报名失败，请稍后再试', 'error');
+  }
 };
 
 export const leaveTask = (task: Task) => {
   openModal(
     '退出确认',
     `确定要退出任务：“${task.title}”吗？`,
-    () => {
-      task.isJoined = false;
-      showToast('已退出任务', 'info');
+    async () => {
+      try {
+        const username = store.user.name || '志愿者';
+        await axios.post(`${API_BASE}/tasks/${task.id}/leave`, { username });
+        task.isJoined = false;
+        showToast('已退出任务', 'info');
+      } catch (error: any) {
+        console.error('退出失败:', error);
+        showToast(error.response?.data?.message || '退出失败，请稍后再试', 'error');
+      }
     }
   );
 };
 
 export const publishPost = async () => {
   if (!newPostContent.value.trim() && !selectedImage.value) return;
-  
+
   isPublishing.value = true;
   try {
     const res = await axios.post(`${API_BASE}/feed`, {
@@ -209,7 +224,7 @@ export const toggleLike = async (post: Post) => {
     const res = await axios.post(`${API_BASE}/feed/${post.id}/${endpoint}`);
     post.likes = res.data.likes;
     post.isLiked = !post.isLiked;
-    
+
     if (post.isLiked) {
       showToast('点赞成功！');
     }
@@ -224,13 +239,13 @@ export const toggleComments = (post: Post) => {
 
 export const addComment = async (post: Post) => {
   if (!post.newCommentContent?.trim()) return;
-  
+
   try {
     const res = await axios.post(`${API_BASE}/feed/${post.id}/comments`, {
       content: post.newCommentContent,
       user: store.user.name || '志愿者'
     });
-    
+
     post.comments.push(res.data);
     post.newCommentContent = '';
     showToast('评论发表成功！');

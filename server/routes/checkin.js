@@ -1,16 +1,63 @@
 import express from 'express';
 import { Op } from 'sequelize';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
 import CheckinRecord from '../models/CheckinRecord.js';
 import User from '../models/User.js';
 import RecycleStation from '../models/RecycleStation.js';
 import { authenticateToken } from '../middleware/auth.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 确保上传目录存在
+const checkinImageDir = path.join(__dirname, '../uploads/checkin');
+if (!fs.existsSync(checkinImageDir)) {
+    fs.mkdirSync(checkinImageDir, { recursive: true });
+}
+
+/**
+ * 保存 base64 图片到文件
+ * @param {string} base64Data - base64 图片数据
+ * @returns {string|null} - 文件路径或 null
+ */
+function saveBase64Image(base64Data) {
+    if (!base64Data || !base64Data.startsWith('data:image/')) {
+        return base64Data; // 如果不是 base64 图片，直接返回原值
+    }
+
+    try {
+        // 解析 base64 数据
+        const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (!matches) return null;
+
+        const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+        const data = matches[2];
+        const buffer = Buffer.from(data, 'base64');
+
+        // 生成唯一文件名
+        const filename = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}.${ext}`;
+        const filePath = path.join(checkinImageDir, filename);
+
+        // 保存文件
+        fs.writeFileSync(filePath, buffer);
+
+        // 返回相对路径（用于服务端访问）
+        return `/uploads/checkin/${filename}`;
+    } catch (error) {
+        console.error('保存图片失败:', error);
+        return null;
+    }
+}
 
 const router = express.Router();
 
 // 获取今日打卡统计
 router.get('/stats', authenticateToken, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -41,7 +88,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
 // 获取打卡历史
 router.get('/history', authenticateToken, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const limit = parseInt(req.query.limit) || 20;
 
         const history = await CheckinRecord.findAll({
@@ -69,14 +116,28 @@ router.get('/history', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
     try {
         const { type, weight, points, imageUrl, stationId } = req.body;
-        const userId = req.user.id;
+        const userId = req.user.userId;
+
+        console.log('=== 打卡请求 ===');
+        console.log('req.user:', req.user);
+        console.log('userId:', userId);
+        console.log('请求体:', { type, weight, points, imageUrl, stationId });
 
         // 基础验证
         if (!type || points === undefined) {
             return res.status(400).json({ success: false, message: '缺少必要参数' });
         }
 
-        // 1. 创建打卡记录
+        if (!userId) {
+            console.error('错误: userId 为空！');
+            return res.status(401).json({ success: false, message: '用户未登录' });
+        }
+
+        // 1. 处理图片 - 将 base64 保存为文件
+        const savedImageUrl = imageUrl ? saveBase64Image(imageUrl) : '';
+        console.log('图片保存结果:', savedImageUrl ? '成功' : '无图片');
+
+        // 2. 创建打卡记录
         const record = await CheckinRecord.create({
             userId,
             stationId: stationId || null,
@@ -84,25 +145,46 @@ router.post('/', authenticateToken, async (req, res) => {
             weight: weight || 0,
             points,
             checkinType: type.includes('AI') ? 'ai_recognition' : 'scan',
-            imageUrl: imageUrl || '',
+            imageUrl: savedImageUrl || '',
             status: 'approved' // 简化逻辑：直接通过
         });
+
+        console.log('打卡记录创建成功:', record.id);
 
         // 2. 更新用户积分
         const user = await User.findByPk(userId);
         if (user) {
             user.points = (user.points || 0) + points;
+
+            // 3. 检查是否是首次回收，如果是则自动完成任务1并奖励50积分
+            const previousCheckinCount = await CheckinRecord.count({
+                where: {
+                    userId,
+                    status: 'approved',
+                    id: { [Op.ne]: record.id } // 排除当前记录
+                }
+            });
+
+            let taskBonusPoints = 0;
+            if (previousCheckinCount === 0) {
+                // 首次回收，奖励任务积分
+                taskBonusPoints = 50;
+                user.points += taskBonusPoints;
+                console.log('首次回收奖励任务积分:', taskBonusPoints);
+            }
+
             await user.save();
+            console.log('用户积分更新成功:', user.points, taskBonusPoints > 0 ? `(含任务奖励${taskBonusPoints})` : '');
         }
 
         res.json({
             success: true,
             message: '打卡成功',
-            points: user.points,
+            points: user ? user.points : points,
             record
         });
     } catch (error) {
-        console.error('打卡失败:', error);
+        console.error('打卡失败 - 详细错误:', error);
         res.status(500).json({ success: false, message: '服务器内部错误' });
     }
 });
@@ -113,8 +195,8 @@ router.post('/', authenticateToken, async (req, res) => {
 router.get('/admin/audit-stats', authenticateToken, async (req, res) => {
     try {
         // 验证是否是管理员
-        const user = await User.findByPk(req.user.id);
-        if (!user || (user.role !== 'recycle_admin' && user.role !== 'system_admin')) {
+        const user = await User.findByPk(req.user.userId);
+        if (!user || (user.role !== 'system_admin')) {
             return res.status(403).json({ success: false, message: '无权限访问' });
         }
 
@@ -156,8 +238,8 @@ router.get('/admin/audit-stats', authenticateToken, async (req, res) => {
 router.get('/admin/pending', authenticateToken, async (req, res) => {
     try {
         // 验证是否是管理员
-        const user = await User.findByPk(req.user.id);
-        if (!user || (user.role !== 'recycle_admin' && user.role !== 'system_admin')) {
+        const user = await User.findByPk(req.user.userId);
+        if (!user || (user.role !== 'system_admin')) {
             return res.status(403).json({ success: false, message: '无权限访问' });
         }
 
@@ -214,8 +296,8 @@ router.get('/admin/pending', authenticateToken, async (req, res) => {
 router.post('/admin/approve/:id', authenticateToken, async (req, res) => {
     try {
         // 验证是否是管理员
-        const user = await User.findByPk(req.user.id);
-        if (!user || (user.role !== 'recycle_admin' && user.role !== 'system_admin')) {
+        const user = await User.findByPk(req.user.userId);
+        if (!user || (user.role !== 'system_admin')) {
             return res.status(403).json({ success: false, message: '无权限访问' });
         }
 
@@ -256,8 +338,8 @@ router.post('/admin/approve/:id', authenticateToken, async (req, res) => {
 router.post('/admin/reject/:id', authenticateToken, async (req, res) => {
     try {
         // 验证是否是管理员
-        const user = await User.findByPk(req.user.id);
-        if (!user || (user.role !== 'recycle_admin' && user.role !== 'system_admin')) {
+        const user = await User.findByPk(req.user.userId);
+        if (!user || (user.role !== 'system_admin')) {
             return res.status(403).json({ success: false, message: '无权限访问' });
         }
 
@@ -293,8 +375,8 @@ router.post('/admin/reject/:id', authenticateToken, async (req, res) => {
 router.get('/admin/stations', authenticateToken, async (req, res) => {
     try {
         // 验证是否是管理员
-        const user = await User.findByPk(req.user.id);
-        if (!user || (user.role !== 'recycle_admin' && user.role !== 'system_admin')) {
+        const user = await User.findByPk(req.user.userId);
+        if (!user || (user.role !== 'system_admin')) {
             return res.status(403).json({ success: false, message: '无权限访问' });
         }
 
@@ -317,8 +399,8 @@ router.get('/admin/stations', authenticateToken, async (req, res) => {
 router.post('/admin/generate-qr', authenticateToken, async (req, res) => {
     try {
         // 验证是否是管理员
-        const user = await User.findByPk(req.user.id);
-        if (!user || (user.role !== 'recycle_admin' && user.role !== 'system_admin')) {
+        const user = await User.findByPk(req.user.userId);
+        if (!user || (user.role !== 'system_admin')) {
             return res.status(403).json({ success: false, message: '无权限访问' });
         }
 
@@ -362,7 +444,7 @@ router.post('/admin/generate-qr', authenticateToken, async (req, res) => {
 router.post('/submit-for-review', authenticateToken, async (req, res) => {
     try {
         const { type, weight, points, imageUrl, stationId } = req.body;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         if (!type || points === undefined) {
             return res.status(400).json({ success: false, message: '缺少必要参数' });

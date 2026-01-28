@@ -8,6 +8,7 @@ import Order from './models/Order.js';
 import RecycleStation from './models/RecycleStation.js';
 import StationAudit from './models/StationAudit.js';
 import StationReport from './models/StationReport.js';
+import TaskParticipation from './models/TaskParticipation.js';
 
 const seedData = async () => {
   try {

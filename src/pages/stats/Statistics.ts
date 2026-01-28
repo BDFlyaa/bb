@@ -1,12 +1,13 @@
 import { computed, ref } from 'vue';
 import { store } from '../../stores';
-import { 
-  getOverview, 
-  getRecentActivities, 
-  getRankings, 
-  getWeeklyTrend, 
-  getInventory, 
+import {
+  getOverview,
+  getRecentActivities,
+  getRankings,
+  getWeeklyTrend,
+  getInventory,
   getUserStats,
+  completeTask,
   type OverviewData,
   type Activity,
   type Ranking,
@@ -65,14 +66,14 @@ const fetchData = async () => {
       if (store.user && store.user.id) {
         // 同步更新 Store 中的用户信息
         await store.fetchUserProfile();
-        
+
         const stats = await getUserStats(store.user.id);
         userStats.value = stats;
       } else {
         await store.fetchUserProfile();
         if (store.user && store.user.id) {
-             const stats = await getUserStats(store.user.id);
-             userStats.value = stats;
+          const stats = await getUserStats(store.user.id);
+          userStats.value = stats;
         }
       }
     }
@@ -93,16 +94,36 @@ const initStatistics = () => {
   fetchData();
 };
 
+// 完成任务并获取积分
+const handleTaskComplete = async (taskId: number) => {
+  if (!store.user?.id) return;
+
+  try {
+    const result = await completeTask(store.user.id, taskId);
+    if (result.success) {
+      // 更新本地积分显示
+      userStats.value.points = result.newPoints;
+      // 标记任务已完成
+      const task = userStats.value.tasks.find(t => t.id === taskId);
+      if (task) task.done = true;
+      alert(result.message);
+    }
+  } catch (error: any) {
+    alert(error.response?.data?.message || '完成任务失败');
+  }
+};
+
 export {
-    isAdmin,
-    currentTime,
-    overview,
-    recentActivities,
-    rankings,
-    weeklyTrend,
-    inventory,
-    userStats,
-    store,
-    loading,
-    initStatistics
+  isAdmin,
+  currentTime,
+  overview,
+  recentActivities,
+  rankings,
+  weeklyTrend,
+  inventory,
+  userStats,
+  store,
+  loading,
+  initStatistics,
+  handleTaskComplete
 }

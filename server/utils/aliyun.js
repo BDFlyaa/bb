@@ -57,7 +57,11 @@ export default class AliyunClassifier {
       imageURLObject: imageStream,
     });
 
-    let runtime = new RuntimeOptions({});
+    // 设置更长的超时时间，阿里云视觉智能 API 需要上传图片并处理，可能需要较长时间
+    let runtime = new RuntimeOptions({
+      readTimeout: 30000,     // 读取超时 30 秒
+      connectTimeout: 10000,  // 连接超时 10 秒
+    });
 
     try {
       // 使用 classifyingRubbishAdvance 方法处理文件流

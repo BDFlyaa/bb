@@ -229,7 +229,8 @@ export const classifyRubbish = async (image: File): Promise<ClassifyRubbishRespo
     return await request.post<any, ClassifyRubbishResponse>('/classify/rubbish', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      timeout: 30000  // 30秒超时，给图片上传和AI识别足够时间
     });
   } catch (error) {
     console.warn('Classify rubbish failed:', error);

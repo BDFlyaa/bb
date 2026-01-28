@@ -74,3 +74,7 @@ export const getInventory = () => {
 export const getUserStats = (userId: number) => {
   return request.get<any, UserStats>(`/stats/user/${userId}`);
 };
+
+export const completeTask = (userId: number, taskId: number) => {
+  return request.post<any, { success: boolean; message: string; newPoints: number }>('/stats/complete-task', { userId, taskId });
+};
