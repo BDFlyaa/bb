@@ -6,12 +6,16 @@ export interface CheckinData {
   points: number;
   imageUrl?: string;
   stationId?: string;
+  confidence?: number; // AI识别置信度
 }
 
 export interface CheckinResponse {
   success: boolean;
   message: string;
   points: number;
+  pendingPoints?: number; // 待审核积分
+  status?: 'approved' | 'pending' | 'rejected'; // 审核状态
+  reviewReason?: string; // 审核原因
   record: any;
 }
 
@@ -98,6 +102,7 @@ export interface PendingRecord {
   time: string;
   points: number;
   stationName: string;
+  status: 'pending' | 'approved' | 'rejected';
 }
 
 export interface PendingRecordsResponse {
@@ -136,7 +141,23 @@ export const getAuditStats = async (): Promise<AuditStatsResponse> => {
   }
 };
 
-// 获取待审核记录列表
+// 获取审核记录列表（支持按状态筛选）
+export const getAuditRecords = async (
+  status: 'pending' | 'approved' | 'rejected' = 'pending',
+  limit = 50,
+  offset = 0
+): Promise<PendingRecordsResponse> => {
+  try {
+    return await request.get<any, PendingRecordsResponse>('/checkin/admin/records', {
+      params: { status, limit, offset }
+    });
+  } catch (error) {
+    console.warn('Get audit records failed, using mock data');
+    return { success: true, data: [] };
+  }
+};
+
+// 获取待审核记录列表（兼容旧接口）
 export const getPendingRecords = async (limit = 50, offset = 0): Promise<PendingRecordsResponse> => {
   try {
     return await request.get<any, PendingRecordsResponse>('/checkin/admin/pending', {
@@ -204,10 +225,16 @@ export const submitForReview = async (data: CheckinData): Promise<CheckinRespons
 // ==================== 垃圾识别 API ====================
 
 export interface RubbishItem {
-  category: string;          // 分类类别
-  categoryScore: number;     // 分类置信度
-  rubbish: string;           // 垃圾名称
-  rubbishScore: number;      // 识别置信度
+  // 阿里云 API 返回 Pascal Case
+  Category?: string;
+  CategoryScore?: number;
+  Rubbish?: string;
+  RubbishScore?: number;
+  // 兼容 camelCase
+  category?: string;          // 分类类别
+  categoryScore?: number;     // 分类置信度
+  rubbish?: string;           // 垃圾名称
+  rubbishScore?: number;      // 识别置信度
 }
 
 export interface ClassifyRubbishResponse {

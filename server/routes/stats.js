@@ -48,6 +48,61 @@ router.get('/overview', async (req, res) => {
     }
 });
 
+// 获取回收物资分类占比
+router.get('/category-breakdown', async (req, res) => {
+    try {
+        // 按类型统计回收重量
+        const categoryStats = await CheckinRecord.findAll({
+            attributes: [
+                'type',
+                [fn('SUM', col('weight')), 'totalWeight']
+            ],
+            where: { status: 'approved' },
+            group: ['type'],
+            order: [[literal('totalWeight'), 'DESC']]
+        });
+
+        // 计算总重量
+        const totalWeight = categoryStats.reduce((sum, cat) => {
+            return sum + parseFloat(cat.dataValues.totalWeight || 0);
+        }, 0);
+
+        // 定义分类颜色映射
+        const colorMap = {
+            '塑料瓶': '#00e5ff',
+            'PET塑料瓶': '#00e5ff',
+            '渔网': '#00ff9d',
+            '海洋渔网': '#00ff9d',
+            'HDPE塑料': '#00b4db',
+            '混合塑料': '#00b4db',
+            '其他': '#bd93f9',
+            '其他废弃物': '#bd93f9',
+            '海洋漂浮物': '#ff79c6'
+        };
+
+        // 格式化返回数据
+        const categories = categoryStats.map(cat => {
+            const weight = parseFloat(cat.dataValues.totalWeight || 0);
+            const percentage = totalWeight > 0 ? Math.round((weight / totalWeight) * 100) : 0;
+            const typeName = cat.type || '其他';
+            return {
+                name: typeName,
+                weight: weight.toFixed(1),
+                percentage,
+                color: colorMap[typeName] || '#bd93f9'
+            };
+        });
+
+        res.json({
+            totalWeight: totalWeight.toFixed(1),
+            categories
+        });
+    } catch (error) {
+        console.error('获取分类占比失败:', error);
+        res.status(500).json({ message: '服务器内部错误' });
+    }
+});
+
 // 获取实时回收动态（最近10条）
 router.get('/recent-activities', async (req, res) => {
     try {
@@ -195,6 +250,38 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
             }
         ];
 
+        // 计算勋章解锁状态
+        const medals = [
+            {
+                id: 'beginner',
+                name: '初级卫士',
+                icon: '铜牌.png',
+                description: '开始守护海洋的第一步',
+                unlocked: checkinCount >= 1
+            },
+            {
+                id: 'classifier',
+                name: '分类达人',
+                icon: '分类达人.png',
+                description: '熟练掌握垃圾分类',
+                unlocked: checkinCount >= 5
+            },
+            {
+                id: 'ocean_friend',
+                name: '海洋之友',
+                icon: '海洋之友.png',
+                description: '为海洋做出显著贡献',
+                unlocked: totalWeight >= 20
+            },
+            {
+                id: 'eco_master',
+                name: '环保大师',
+                icon: '环保大师.png',
+                description: '环保领域的佼佼者',
+                unlocked: points >= 1000
+            }
+        ];
+
         res.json({
             username: user?.username || '用户',
             totalWeight: totalWeight.toFixed(1),
@@ -204,7 +291,8 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
             level,
             levelProgress: parseInt(levelProgress),
             pointsToNextLevel: nextLevelPoints - points,
-            tasks
+            tasks,
+            medals
         });
     } catch (error) {
         console.error('获取用户统计失败:', error);

@@ -40,7 +40,7 @@ router.post('/redeem/:productId', authenticateToken, async (req, res) => {
 
     try {
         const { productId } = req.params;
-        const { address } = req.body;
+        const { address, phone } = req.body;
         const userId = req.user.userId;
 
         // 查找商品
@@ -89,6 +89,7 @@ router.post('/redeem/:productId', authenticateToken, async (req, res) => {
             pointsCost: product.points,
             status: 'pending',
             address: address || null,
+            phone: phone || null,
         }, { transaction });
 
         await transaction.commit();
@@ -228,13 +229,12 @@ router.delete('/products/:id', authenticateToken, requireAdmin, async (req, res)
             return res.status(404).json({ message: '商品不存在' });
         }
 
-        // 软删除：设置状态为 inactive
-        product.status = 'inactive';
-        await product.save();
+        // 硬删除：从数据库中移除
+        await product.destroy();
 
-        res.json({ message: '商品已下架' });
+        res.json({ message: '商品已删除' });
     } catch (error) {
-        console.error('下架商品失败:', error);
+        console.error('删除商品失败:', error);
         res.status(500).json({ message: '服务器内部错误' });
     }
 });
@@ -288,6 +288,73 @@ router.put('/admin/orders/:id/ship', authenticateToken, requireAdmin, async (req
         res.json({ message: '订单已标记为发货', order });
     } catch (error) {
         console.error('处理订单失败:', error);
+        res.status(500).json({ message: '服务器内部错误' });
+    }
+});
+
+// 取消发货（恢复为待发货）
+router.put('/admin/orders/:id/unship', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const order = await Order.findByPk(id);
+        if (!order) {
+            return res.status(404).json({ message: '订单不存在' });
+        }
+
+        if (order.status !== 'shipped') {
+            return res.status(400).json({ message: '只能取消已发货的订单' });
+        }
+
+        order.status = 'pending';
+        await order.save();
+
+        res.json({ message: '订单已取消发货，恢复为待发货状态', order });
+    } catch (error) {
+        console.error('取消发货失败:', error);
+        res.status(500).json({ message: '服务器内部错误' });
+    }
+});
+
+// 取消订单
+router.put('/admin/orders/:id/cancel', authenticateToken, requireAdmin, async (req, res) => {
+    const transaction = await sequelize.transaction();
+    try {
+        const { id } = req.params;
+
+        const order = await Order.findByPk(id, { transaction });
+        if (!order) {
+            await transaction.rollback();
+            return res.status(404).json({ message: '订单不存在' });
+        }
+
+        if (order.status !== 'pending') {
+            await transaction.rollback();
+            return res.status(400).json({ message: '只能取消待发货的订单' });
+        }
+
+        // 恢复库存
+        const product = await Product.findByPk(order.productId, { transaction });
+        if (product) {
+            product.inventory += 1;
+            await product.save({ transaction });
+        }
+
+        // 退还积分
+        const user = await User.findByPk(order.userId, { transaction });
+        if (user) {
+            user.points += order.pointsCost;
+            await user.save({ transaction });
+        }
+
+        order.status = 'cancelled';
+        await order.save({ transaction });
+
+        await transaction.commit();
+        res.json({ message: '订单已取消，积分已退还', order });
+    } catch (error) {
+        await transaction.rollback();
+        console.error('取消订单失败:', error);
         res.status(500).json({ message: '服务器内部错误' });
     }
 });

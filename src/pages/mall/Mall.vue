@@ -129,13 +129,14 @@
                 </span>
               </td>
               <td>
-                <button class="btn-sm btn-ghost" @click="editProduct(item)">修改价格</button>
+                <button class="btn-sm btn-info" @click="editProduct(item)">修改价格</button>
                 <button 
-                  :class="['btn-sm', item.status === 'inactive' ? 'btn-success' : 'btn-danger']" 
+                  :class="['btn-sm', item.status === 'inactive' ? 'btn-success' : 'btn-warning']" 
                   @click="toggleStatus(item)"
                 >
                   {{ item.status === 'inactive' ? '上架' : '下架' }}
                 </button>
+                <button class="btn-sm btn-danger" @click="deleteProduct(item)">删除</button>
               </td>
             </tr>
           </tbody>
@@ -163,12 +164,65 @@
               <td>{{ order.time }}</td>
               <td><span :class="['status-tag', order.status]">{{ order.statusText }}</span></td>
               <td>
-                <button v-if="order.status === 'pending'" class="btn-sm btn-success" @click="shipOrder(order)">处理发货</button>
-                <button v-else class="btn-sm btn-ghost" disabled>已处理</button>
+                <button class="btn-sm btn-info" @click="viewOrderDetails(order)">详情</button>
+                <button v-if="order.status === 'pending'" class="btn-sm btn-success" @click="shipOrder(order)">发货</button>
+                <button v-if="order.status === 'pending'" class="btn-sm btn-danger" @click="cancelOrder(order)">取消</button>
+                <button v-if="order.status === 'shipped'" class="btn-sm btn-warning" @click="unshipOrder(order)">取消发货</button>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- 订单详情模态框 -->
+    <div v-if="showOrderDetailsModal" class="modal-overlay" style="z-index: 10000;" @click.self="closeOrderDetailsModal">
+      <div class="modal-content glass-panel">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            订单详情
+          </h3>
+          <button style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;" @click="closeOrderDetailsModal">×</button>
+        </div>
+        
+        <div class="modal-body" v-if="currentOrder">
+          <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: 100px 1fr; gap: 15px; font-size: 0.95rem;">
+              <div style="color: #888;">订单编号</div>
+              <div>{{ currentOrder.id }}</div>
+              
+              <div style="color: #888;">下单时间</div>
+              <div>{{ currentOrder.time }}</div>
+              
+              <div style="color: #888;">当前状态</div>
+              <div>
+                <span :class="['status-tag', currentOrder.status]">{{ currentOrder.statusText }}</span>
+              </div>
+              
+              <div style="color: #888;">兑换商品</div>
+              <div>{{ currentOrder.item }}</div>
+              
+              <div style="color: #888;">兑换用户</div>
+              <div>{{ currentOrder.user }}</div>
+            </div>
+          </div>
+
+          <h4 style="margin-bottom: 15px; border-left: 3px solid #00e5ff; padding-left: 10px;">收货信息</h4>
+          <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 8px;">
+            <div style="display: grid; grid-template-columns: 100px 1fr; gap: 15px; font-size: 0.95rem;">
+              <div style="color: #888;">联系电话</div>
+              <div>{{ currentOrder.phone || '暂无' }}</div>
+              
+              <div style="color: #888;">收货地址</div>
+              <div style="line-height: 1.5;">{{ currentOrder.address || '暂无' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-primary" @click="closeOrderDetailsModal">关闭</button>
+        </div>
       </div>
     </div>
 
@@ -307,6 +361,139 @@
       </div>
     </div>
 
+    <!-- 修改商品价格模态框 -->
+    <div v-if="showEditProductModal" class="modal-overlay" @click.self="closeEditProductModal">
+      <div class="modal-content glass-panel">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            修改商品信息
+          </h3>
+          <button style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;" @click="closeEditProductModal">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label>商品名称</label>
+            <input 
+              type="text" 
+              class="form-input" 
+              v-model="editProductForm.name" 
+              disabled
+            >
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>积分价格</label>
+              <input 
+                type="number" 
+                class="form-input" 
+                v-model="editProductForm.points" 
+                min="1"
+              >
+              <div class="error-msg" v-if="editFormErrors.points">{{ editFormErrors.points }}</div>
+            </div>
+            
+            <div class="form-group">
+              <label>库存数量</label>
+              <input 
+                type="number" 
+                class="form-input" 
+                v-model="editProductForm.inventory" 
+                min="0"
+              >
+              <div class="error-msg" v-if="editFormErrors.inventory">{{ editFormErrors.inventory }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="closeEditProductModal">取消</button>
+          <button class="btn-primary" @click="submitEditProduct" :disabled="isSubmitting">
+            {{ isSubmitting ? '处理中...' : '确认修改' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 兑换商品模态框 -->
+    <div v-if="showRedeemModal" class="modal-overlay" style="z-index: 10000;" @click.self="closeRedeemModal">
+      <div class="modal-content glass-panel">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            兑换商品
+          </h3>
+          <button style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;" @click="closeRedeemModal">×</button>
+        </div>
+        
+        <div class="modal-body" v-if="currentRedeemItem">
+          <!-- 商品信息概览 -->
+          <div style="display: flex; gap: 15px; background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px; margin-bottom: 25px; align-items: center;">
+            <div style="width: 60px; height: 60px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+              <img v-if="currentRedeemItem.icon && (currentRedeemItem.icon.startsWith('data:image') || currentRedeemItem.icon.startsWith('http'))" :src="currentRedeemItem.icon" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" alt="商品图片">
+              <span v-else>{{ currentRedeemItem.icon }}</span>
+            </div>
+            <div style="flex: 1;">
+              <h4 style="margin: 0 0 5px 0;">{{ currentRedeemItem.name }}</h4>
+              <div style="color: #ffd700; font-weight: bold;">
+                {{ currentRedeemItem.points }} 积分
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>收货人姓名</label>
+              <input 
+                type="text" 
+                class="form-input" 
+                v-model="redeemForm.name" 
+                placeholder="请输入收货人姓名"
+              >
+              <div class="error-msg" v-if="redeemFormErrors.name">{{ redeemFormErrors.name }}</div>
+            </div>
+            
+            <div class="form-group">
+              <label>联系电话</label>
+              <input 
+                type="text" 
+                class="form-input" 
+                v-model="redeemForm.phone" 
+                placeholder="请输入联系电话"
+              >
+              <div class="error-msg" v-if="redeemFormErrors.phone">{{ redeemFormErrors.phone }}</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>详细收货地址</label>
+            <textarea 
+              class="form-textarea" 
+              v-model="redeemForm.address" 
+              placeholder="请输入省、市、区、街道及详细门牌号"
+              style="min-height: 80px;"
+            ></textarea>
+            <div class="error-msg" v-if="redeemFormErrors.address">{{ redeemFormErrors.address }}</div>
+          </div>
+
+          <!-- 积分计算 -->
+          <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.9rem; color: #aaa; display: flex; justify-content: space-between;">
+            <span>当前积分：{{ store.user.points || 0 }}</span>
+            <span style="color: #00e5ff;">兑换后剩余：{{ (store.user.points || 0) - currentRedeemItem.points }}</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="closeRedeemModal">取消</button>
+          <button class="btn-primary" @click="submitRedeem" :disabled="isSubmitting">
+            {{ isSubmitting ? '处理中...' : '确认兑换' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 确认操作模态框 -->
     <div v-if="showConfirmModal" class="modal-overlay" style="z-index: 9999;" @click.self="closeConfirmModal">
       <div class="modal-content glass-panel" style="max-width: 400px; text-align: center;">
@@ -325,6 +512,21 @@
           >
             确认
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 兑换成功模态框 -->
+    <div v-if="showRedeemSuccessModal" class="modal-overlay" style="z-index: 10000;" @click.self="closeRedeemSuccessModal">
+      <div class="modal-content glass-panel" style="max-width: 400px; text-align: center;">
+        <div style="font-size: 3rem; margin-bottom: 10px; display: flex; justify-content: center; color: #52c41a;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        </div>
+        <h3 style="margin-bottom: 15px;">兑换成功</h3>
+        <p style="margin-bottom: 25px; color: #eee; line-height: 1.5;">{{ redeemSuccessMessage }}</p>
+        
+        <div class="modal-footer" style="justify-content: center;">
+          <button class="btn-primary" @click="closeRedeemSuccessModal">确定</button>
         </div>
       </div>
     </div>
@@ -362,7 +564,28 @@ import {
     showConfirmModal,
     confirmData,
     closeConfirmModal,
-    executeConfirmAction
+    executeConfirmAction,
+    showEditProductModal,
+    editProductForm,
+    editFormErrors,
+    closeEditProductModal,
+    submitEditProduct,
+    deleteProduct,
+    showRedeemSuccessModal,
+    redeemSuccessMessage,
+    closeRedeemSuccessModal,
+    showRedeemModal,
+    currentRedeemItem,
+    redeemForm,
+    redeemFormErrors,
+    closeRedeemModal,
+    submitRedeem,
+    cancelOrder,
+    unshipOrder,
+    showOrderDetailsModal,
+    currentOrder,
+    viewOrderDetails,
+    closeOrderDetailsModal
 } from './Mall';
 
 onMounted(() => {

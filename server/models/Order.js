@@ -46,6 +46,10 @@ const Order = sequelize.define('Order', {
         type: DataTypes.TEXT,
         allowNull: true,
     },
+    phone: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
 }, {
     timestamps: true,
 });

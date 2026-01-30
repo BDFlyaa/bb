@@ -78,7 +78,9 @@ const fetchAdminOrders = async () => {
       status: order.status,
       statusText: order.status === 'pending' ? '待发货' :
         order.status === 'shipped' ? '已发货' :
-          order.status === 'completed' ? '已完成' : '已取消'
+          order.status === 'completed' ? '已完成' : '已取消',
+      address: order.address,
+      phone: order.phone
     }));
     pendingOrders.value = mockOrders.value.filter((o: any) => o.status === 'pending').length;
   } catch (error) {
@@ -100,7 +102,31 @@ const initMall = async () => {
   }
 };
 
-const redeem = async (item: any) => {
+const showRedeemSuccessModal = ref(false);
+const redeemSuccessMessage = ref('');
+const showRedeemModal = ref(false);
+const currentRedeemItem = ref<any>(null);
+const redeemForm = ref({
+    name: '',
+    phone: '',
+    address: ''
+});
+const redeemFormErrors = ref({
+    name: '',
+    phone: '',
+    address: ''
+});
+
+const closeRedeemSuccessModal = () => {
+    showRedeemSuccessModal.value = false;
+};
+
+const closeRedeemModal = () => {
+    showRedeemModal.value = false;
+    redeemFormErrors.value = { name: '', phone: '', address: '' };
+};
+
+const redeem = (item: any) => {
   if ((store.user.points || 0) < item.points) {
     alert('积分不足！');
     return;
@@ -111,26 +137,74 @@ const redeem = async (item: any) => {
     return;
   }
 
-  if (confirm(`确定要消耗 ${item.points} 积分兑换 ${item.name} 吗？`)) {
-    try {
-      await axios.post(`${API_URL}/redeem/${item.id}`, {}, {
-        headers: { Authorization: `Bearer ${store.token}` }
-      });
+  currentRedeemItem.value = item;
+  // 预填一些用户信息如果 store 里有的话（假设 store.user 只有 username 和 points，这里先留空）
+  redeemForm.value = { name: '', phone: '', address: '' };
+  redeemFormErrors.value = { name: '', phone: '', address: '' };
+  showRedeemModal.value = true;
+};
 
-      // 更新本地积分
-      store.updatePoints(-item.points);
+const submitRedeem = async () => {
+    // 验证
+    let isValid = true;
+    redeemFormErrors.value = { name: '', phone: '', address: '' };
 
-      // 更新本地库存
-      item.inventory--;
-
-      // 刷新订单列表
-      await fetchOrders();
-
-      alert('兑换成功！我们将尽快为您寄出。');
-    } catch (error: any) {
-      alert(error.response?.data?.message || '兑换失败，请稍后重试');
+    if (!redeemForm.value.name.trim()) {
+        redeemFormErrors.value.name = '请输入收货人姓名';
+        isValid = false;
     }
-  }
+
+    if (!redeemForm.value.phone.trim()) {
+        redeemFormErrors.value.phone = '请输入联系电话';
+        isValid = false;
+    } else if (!/^1[3-9]\d{9}$/.test(redeemForm.value.phone)) {
+        redeemFormErrors.value.phone = '请输入有效的手机号码';
+        isValid = false;
+    }
+
+    if (!redeemForm.value.address.trim()) {
+        redeemFormErrors.value.address = '请输入详细收货地址';
+        isValid = false;
+    }
+
+    if (!isValid) return;
+
+    if (!currentRedeemItem.value) return;
+
+    const item = currentRedeemItem.value;
+    // 拼接地址信息
+    const fullAddress = `${redeemForm.value.name}, ${redeemForm.value.address}`;
+
+    isSubmitting.value = true;
+    try {
+        await axios.post(`${API_URL}/redeem/${item.id}`, {
+            address: fullAddress,
+            phone: redeemForm.value.phone
+        }, {
+            headers: { Authorization: `Bearer ${store.token}` }
+        });
+
+        // 更新本地积分
+        store.updatePoints(-item.points);
+
+        // 更新本地库存
+        item.inventory--;
+
+        // 刷新订单列表
+        await fetchOrders();
+
+        // 关闭兑换模态框
+        showRedeemModal.value = false;
+
+        // 显示成功模态框
+        redeemSuccessMessage.value = `成功兑换 ${item.name}！我们将尽快为您寄出。`;
+        showRedeemSuccessModal.value = true;
+
+    } catch (error: any) {
+        alert(error.response?.data?.message || '兑换失败，请稍后重试');
+    } finally {
+        isSubmitting.value = false;
+    }
 };
 
 const shipOrder = async (order: any) => {
@@ -141,10 +215,65 @@ const shipOrder = async (order: any) => {
     order.status = 'shipped';
     order.statusText = '已发货';
     pendingOrders.value--;
-    alert(`订单 ${order.id} 已标记为发货状态`);
+    // alert(`订单 ${order.id} 已标记为发货状态`);
   } catch (error: any) {
     alert(error.response?.data?.message || '操作失败');
   }
+};
+
+const unshipOrder = async (order: any) => {
+  if (!confirmData.value) return;
+
+  confirmData.value = {
+    title: '取消发货确认',
+    message: `确定要取消订单 ${order.id} 的发货状态吗？这将使其恢复为待发货。`,
+    type: 'warning',
+    action: async () => {
+      try {
+        await axios.put(`${API_URL}/admin/orders/${order.orderId}/unship`, {}, {
+          headers: { Authorization: `Bearer ${store.token}` }
+        });
+        order.status = 'pending';
+        order.statusText = '待发货';
+        pendingOrders.value++;
+        // alert(`订单 ${order.id} 已恢复为待发货状态`);
+      } catch (error: any) {
+        alert(error.response?.data?.message || '操作失败');
+      }
+    }
+  };
+  showConfirmModal.value = true;
+};
+
+const cancelOrder = async (order: any) => {
+  if (!confirm(`确定要取消订单 ${order.id} 吗？`)) return;
+  
+  try {
+    await axios.put(`${API_URL}/admin/orders/${order.orderId}/cancel`, {}, {
+      headers: { Authorization: `Bearer ${store.token}` }
+    });
+    order.status = 'cancelled';
+    order.statusText = '已取消';
+    if (order.status === 'pending') {
+        pendingOrders.value--;
+    }
+    alert(`订单 ${order.id} 已取消`);
+  } catch (error: any) {
+    alert(error.response?.data?.message || '操作失败');
+  }
+};
+
+const showOrderDetailsModal = ref(false);
+const currentOrder = ref<any>(null);
+
+const viewOrderDetails = (order: any) => {
+    currentOrder.value = order;
+    showOrderDetailsModal.value = true;
+};
+
+const closeOrderDetailsModal = () => {
+    showOrderDetailsModal.value = false;
+    currentOrder.value = null;
 };
 
 const showAddProductModal = ref(false);
@@ -237,7 +366,7 @@ const submitProduct = async () => {
       headers: { Authorization: `Bearer ${store.token}` }
     });
     
-    alert('商品添加成功！');
+    
     showAddProductModal.value = false;
     await fetchProducts();
   } catch (error: any) {
@@ -266,26 +395,99 @@ const addProduct = async () => {
   showAddProductModal.value = true;
 };
 
-const editProduct = async (item: any) => {
-  const newPoints = prompt(`修改 ${item.name} 的积分价格`, String(item.points));
-  if (!newPoints || isNaN(Number(newPoints))) return;
+const showEditProductModal = ref(false);
+const editProductForm = ref({
+  id: '',
+  name: '',
+  points: 0,
+  inventory: 0
+});
+const editFormErrors = ref({
+    points: '',
+    inventory: ''
+});
 
-  const newInventory = prompt('修改库存数量', String(item.inventory));
-  if (newInventory === null || isNaN(Number(newInventory))) return;
+const closeEditProductModal = () => {
+    showEditProductModal.value = false;
+    editFormErrors.value = { points: '', inventory: '' };
+};
 
-  try {
-    await axios.put(`${API_URL}/products/${item.id}`, {
-      points: Number(newPoints),
-      inventory: Number(newInventory)
-    }, {
-      headers: { Authorization: `Bearer ${store.token}` }
-    });
-    item.points = Number(newPoints);
-    item.inventory = Number(newInventory);
-    alert('商品更新成功！');
-  } catch (error: any) {
-    alert(error.response?.data?.message || '更新失败');
-  }
+const editProduct = (item: any) => {
+    editProductForm.value = {
+        id: item.id,
+        name: item.name,
+        points: item.points,
+        inventory: item.inventory
+    };
+    editFormErrors.value = { points: '', inventory: '' };
+    showEditProductModal.value = true;
+};
+
+const submitEditProduct = async () => {
+    // validation
+    editFormErrors.value = { points: '', inventory: '' };
+    let isValid = true;
+    
+    if (editProductForm.value.points <= 0) {
+        editFormErrors.value.points = '积分必须大于0';
+        isValid = false;
+    }
+    
+    if (editProductForm.value.inventory < 0) {
+        editFormErrors.value.inventory = '库存不能为负数';
+        isValid = false;
+    }
+    
+    if (!isValid) return;
+    
+    isSubmitting.value = true;
+    try {
+        await axios.put(`${API_URL}/products/${editProductForm.value.id}`, {
+            points: Number(editProductForm.value.points),
+            inventory: Number(editProductForm.value.inventory)
+        }, {
+            headers: { Authorization: `Bearer ${store.token}` }
+        });
+        
+        // Update local item
+        const item = items.value.find((i: any) => i.id === editProductForm.value.id);
+        if (item) {
+            item.points = Number(editProductForm.value.points);
+            item.inventory = Number(editProductForm.value.inventory);
+        }
+        
+        alert('商品更新成功！');
+        showEditProductModal.value = false;
+    } catch (error: any) {
+        alert(error.response?.data?.message || '更新失败');
+    } finally {
+        isSubmitting.value = false;
+    }
+};
+
+const deleteProduct = async (item: any) => {
+  if (!confirmData.value) return;
+
+  confirmData.value = {
+    title: '删除确认',
+    message: `您确定要删除商品 "${item.name}" 吗？此操作无法撤销。`,
+    type: 'warning',
+    action: async () => {
+      try {
+        await axios.delete(`${API_URL}/products/${item.id}`, {
+          headers: { Authorization: `Bearer ${store.token}` }
+        });
+        
+        // 从列表中移除
+        items.value = items.value.filter((i: any) => i.id !== item.id);
+        
+        
+      } catch (error: any) {
+        alert(error.response?.data?.message || '删除失败');
+      }
+    }
+  };
+  showConfirmModal.value = true;
 };
 
 const closeConfirmModal = () => {
@@ -334,7 +536,9 @@ const toggleStatus = async (item: any) => {
           item.status = 'active';
         } else {
           // 下架逻辑
-          await axios.delete(`${API_URL}/products/${item.id}`, {
+          await axios.put(`${API_URL}/products/${item.id}`, {
+            status: 'inactive'
+          }, {
             headers: { Authorization: `Bearer ${store.token}` }
           });
           item.status = 'inactive';
@@ -385,5 +589,26 @@ export {
   showConfirmModal,
   confirmData,
   closeConfirmModal,
-  executeConfirmAction
+  executeConfirmAction,
+  showEditProductModal,
+  editProductForm,
+  editFormErrors,
+  closeEditProductModal,
+  submitEditProduct,
+  deleteProduct,
+  showRedeemSuccessModal,
+  redeemSuccessMessage,
+  closeRedeemSuccessModal,
+  showRedeemModal,
+  currentRedeemItem,
+  redeemForm,
+  redeemFormErrors,
+  closeRedeemModal,
+  submitRedeem,
+  cancelOrder,
+  unshipOrder,
+  showOrderDetailsModal,
+  currentOrder,
+  viewOrderDetails,
+  closeOrderDetailsModal
 }

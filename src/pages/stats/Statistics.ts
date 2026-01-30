@@ -6,6 +6,7 @@ import {
   getRankings,
   getWeeklyTrend,
   getInventory,
+  getCategoryBreakdown,
   getUserStats,
   completeTask,
   type OverviewData,
@@ -13,6 +14,7 @@ import {
   type Ranking,
   type TrendData,
   type InventoryData,
+  type CategoryBreakdown,
   type UserStats
 } from '../../api/stats';
 
@@ -30,6 +32,7 @@ const recentActivities = ref<Activity[]>([]);
 const rankings = ref<Ranking[]>([]);
 const weeklyTrend = ref<TrendData>({ days: [], weights: [] });
 const inventory = ref<InventoryData>({ items: [] });
+const categoryBreakdown = ref<CategoryBreakdown>({ totalWeight: '0', categories: [] });
 
 // 用户数据
 const userStats = ref<UserStats>({
@@ -41,7 +44,8 @@ const userStats = ref<UserStats>({
   level: 1,
   levelProgress: 0,
   pointsToNextLevel: 500,
-  tasks: []
+  tasks: [],
+  medals: []
 });
 
 const loading = ref(false);
@@ -50,18 +54,20 @@ const fetchData = async () => {
   loading.value = true;
   try {
     if (isAdmin.value) {
-      const [overviewData, activitiesData, rankingsData, trendData, inventoryData] = await Promise.all([
+      const [overviewData, activitiesData, rankingsData, trendData, inventoryData, categoryData] = await Promise.all([
         getOverview(),
         getRecentActivities(),
         getRankings(),
         getWeeklyTrend(),
-        getInventory()
+        getInventory(),
+        getCategoryBreakdown()
       ]);
       overview.value = overviewData;
       recentActivities.value = activitiesData;
       rankings.value = rankingsData;
       weeklyTrend.value = trendData;
       inventory.value = inventoryData;
+      categoryBreakdown.value = categoryData;
     } else {
       if (store.user && store.user.id) {
         // 同步更新 Store 中的用户信息
@@ -113,6 +119,30 @@ const handleTaskComplete = async (taskId: number) => {
   }
 };
 
+// 生成动态饼图渐变样式
+const pieChartGradient = computed(() => {
+  const categories = categoryBreakdown.value.categories;
+  if (categories.length === 0) {
+    // 默认灰色表示无数据
+    return 'conic-gradient(#444 0% 100%)';
+  }
+
+  let currentPercent = 0;
+  const gradientStops = categories.map(cat => {
+    const startPercent = currentPercent;
+    const endPercent = currentPercent + cat.percentage;
+    currentPercent = endPercent;
+    return `${cat.color} ${startPercent}% ${endPercent}%`;
+  });
+
+  return `conic-gradient(${gradientStops.join(', ')})`;
+});
+
+// 获取勋章图标路径
+const getMedalIcon = (icon: string) => {
+  return new URL(`../../assets/images/${icon}`, import.meta.url).href;
+};
+
 export {
   isAdmin,
   currentTime,
@@ -121,9 +151,12 @@ export {
   rankings,
   weeklyTrend,
   inventory,
+  categoryBreakdown,
+  pieChartGradient,
   userStats,
   store,
   loading,
   initStatistics,
-  handleTaskComplete
+  handleTaskComplete,
+  getMedalIcon
 }

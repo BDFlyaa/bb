@@ -200,7 +200,10 @@
           <div v-if="activeTab === 'audit'" class="audit-section-container" key="audit">
             <!-- 统计卡片 -->
             <div class="stats-cards">
-              <div class="stat-card glass-panel pending">
+              <div 
+                :class="['stat-card', 'glass-panel', 'pending', { active: auditFilter === 'pending' }]"
+                @click="setAuditFilter('pending')"
+              >
                 <div class="stat-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 </div>
@@ -209,7 +212,10 @@
                   <span class="value">{{ auditStats.pending }}</span>
                 </div>
               </div>
-              <div class="stat-card glass-panel approved">
+              <div 
+                :class="['stat-card', 'glass-panel', 'approved', { active: auditFilter === 'approved' }]"
+                @click="setAuditFilter('approved')"
+              >
                 <div class="stat-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                 </div>
@@ -218,7 +224,10 @@
                   <span class="value">{{ auditStats.approved }}</span>
                 </div>
               </div>
-              <div class="stat-card glass-panel rejected">
+              <div 
+                :class="['stat-card', 'glass-panel', 'rejected', { active: auditFilter === 'rejected' }]"
+                @click="setAuditFilter('rejected')"
+              >
                 <div class="stat-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
                 </div>
@@ -231,7 +240,7 @@
 
             <div class="audit-list glass-panel">
               <div class="section-header">
-                <h3>待处理申请</h3>
+                <h3>{{ sectionTitle }}</h3>
               </div>
               <table class="admin-table">
                 <thead>
@@ -240,11 +249,12 @@
                     <th>现场照片</th>
                     <th>AI 识别结果</th>
                     <th>提交时间</th>
-                    <th>操作</th>
+                    <th v-if="auditFilter === 'pending'">操作</th>
+                    <th v-else>状态</th>
                   </tr>
                 </thead>
                 <TransitionGroup name="list" tag="tbody">
-                  <tr v-for="r in pendingRecords" :key="r.id">
+                  <tr v-for="r in auditRecords" :key="r.id">
                     <td>
                       <div class="user-cell">
                         <div class="avatar-circle">{{ r.user.charAt(0) }}</div>
@@ -264,7 +274,7 @@
                     </td>
                     <td class="time-text">{{ r.time }}</td>
                     <td>
-                      <div class="action-group">
+                      <div v-if="auditFilter === 'pending'" class="action-group">
                         <button class="btn-icon approve" @click="approve(r)" title="通过">
                           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </button>
@@ -272,13 +282,16 @@
                           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
                       </div>
+                      <div v-else class="status-badge" :class="r.status">
+                         {{ r.status === 'approved' ? '已通过' : '已驳回' }}
+                      </div>
                     </td>
                   </tr>
-                  <tr v-if="pendingRecords.length === 0" key="empty">
+                  <tr v-if="auditRecords.length === 0" key="empty">
                     <td colspan="5" class="empty-cell">
                       <div class="empty-state">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: text-bottom;"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-                        当前没有待审核的记录
+                        当前没有{{ sectionTitle.replace('申请', '') }}记录
                       </div>
                     </td>
                   </tr>
@@ -398,7 +411,10 @@ const {
   qrCodeUrl,
   generateQR,
   downloadQR,
-  pendingRecords,
+  auditRecords,
+  auditFilter,
+  sectionTitle,
+  setAuditFilter,
   auditStats,
   previewImageState,
   approve,

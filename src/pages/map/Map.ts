@@ -71,9 +71,19 @@ export function useMapLogic() {
   let placeSearch: any = null;
   let markers: any[] = [];
 
-  // 获取数据
-  const fetchStations = async () => {
+  // 缓存站点数据（预加载）
+  let stationsDataCache: any[] | null = null;
+
+  // 获取数据 - 优化：支持返回数据供预加载使用
+  const fetchStations = async (useCache = false) => {
     try {
+      // 如果有缓存数据，直接使用
+      if (useCache && stationsDataCache) {
+        mockStations.value = stationsDataCache;
+        stationsDataCache = null; // 用完清除
+        refreshMarkers();
+        return;
+      }
       const res = await api.get('/stations');
       mockStations.value = res.data;
       refreshMarkers();
@@ -102,61 +112,88 @@ export function useMapLogic() {
     }
   };
 
+  // 预加载数据（与地图加载并行）
+  const preloadData = async () => {
+    try {
+      const res = await api.get('/stations');
+      stationsDataCache = res.data;
+    } catch (e) {
+      console.error('预加载站点失败', e);
+    }
+  };
+
+  // 并行加载管理员数据
+  const loadAdminData = () => {
+    if (!isAdmin.value) return;
+    // 使用 Promise.all 并行请求
+    Promise.all([fetchAudits(), fetchReports()]).catch(e => {
+      console.error('加载管理员数据失败', e);
+    });
+  };
+
   const initMap = () => {
     (window as any)._AMapSecurityConfig = {
       securityJsCode: '7b7509159aefd262b8ec05227c8e19da',
     };
 
+    // 🚀 优化1: 预加载数据（与地图SDK加载并行）
+    preloadData();
+    loadAdminData();
+
     AMapLoader.load({
       key: 'dc05c7a1f7f1312191532da4e379f188',
       version: '2.0',
+      // 🚀 优化2: 精简插件，只加载必需的
       plugins: [
         'AMap.Marker',
         'AMap.InfoWindow',
         'AMap.ToolBar',
-        'AMap.Scale',
-        'AMap.Geolocation',
-        'AMap.PlaceSearch',
-        'AMap.Geocoder',
-        'AMap.AutoComplete'
+        'AMap.Geocoder'
       ]
     }).then((AMap) => {
       (window as any).AMap = AMap;
       map = new AMap.Map('container', {
-        viewMode: '3D',
+        viewMode: '2D', // 🚀 优化3: 2D模式渲染更快
         zoom: 13,
         center: [110.359377, 21.270708], // 湛江
         theme: 'amap://styles/darkblue'
       });
 
       map.addControl(new AMap.ToolBar({ position: 'RT' }));
-      map.addControl(new AMap.Scale());
 
-      const geolocation = new AMap.Geolocation({
-        enableHighAccuracy: true,
-        timeout: 10000,
-        buttonPosition: 'RB',
-        buttonOffset: new AMap.Pixel(10, 20),
-        zoomToAccuracy: true,
-      });
-      map.addControl(geolocation);
+      // 🚀 优化4: 延迟加载非必需插件
+      setTimeout(() => {
+        AMapLoader.load({
+          key: 'dc05c7a1f7f1312191532da4e379f188',
+          version: '2.0',
+          plugins: ['AMap.Scale', 'AMap.PlaceSearch', 'AMap.Geolocation']
+        }).then(() => {
+          map.addControl(new AMap.Scale());
+          placeSearch = new AMap.PlaceSearch({ map: map });
+
+          // 🚀 优化5: 定位改为后台静默执行
+          const geolocation = new AMap.Geolocation({
+            enableHighAccuracy: false, // 标准精度更快
+            timeout: 5000,
+            buttonPosition: 'RB',
+            buttonOffset: new AMap.Pixel(10, 20),
+            zoomToAccuracy: false, // 不自动缩放
+          });
+          map.addControl(geolocation);
+        });
+      }, 100);
 
       geocoder = new AMap.Geocoder({ city: '全国' });
-      placeSearch = new AMap.PlaceSearch({ map: map });
 
-      // 加载数据
-      fetchStations();
-      if (isAdmin.value) {
-        fetchAudits();
-        fetchReports();
-      }
+      // 🚀 优化6: 使用预加载的缓存数据
+      fetchStations(true);
 
       map.on('click', (e: any) => {
         if (isPickingLocation.value) {
           const lnglat = e.lnglat;
           reportForm.lng = lnglat.getLng();
           reportForm.lat = lnglat.getLat();
-          
+
           geocoder.getAddress(lnglat, (status: string, result: any) => {
             if (status === 'complete' && result.regeocode) {
               reportForm.address = result.regeocode.formattedAddress;
@@ -195,7 +232,7 @@ export function useMapLogic() {
     // 清除旧标记
     map.remove(markers);
     markers = [];
-    
+
     mockStations.value.forEach(station => {
       addMarker(station);
     });
@@ -204,7 +241,7 @@ export function useMapLogic() {
   const addMarker = (station: any) => {
     if (!map) return;
     const AMap = (window as any).AMap;
-    
+
     const marker = new AMap.Marker({
       position: [station.lng, station.lat],
       title: station.name,
@@ -274,35 +311,35 @@ export function useMapLogic() {
       alert('请填写完整信息并选择位置');
       return;
     }
-    
+
     try {
       if (isAdmin.value) {
         // 管理员直接添加
         await api.post('/stations', {
-            name: reportForm.name,
-            address: reportForm.address,
-            lng: reportForm.lng,
-            lat: reportForm.lat,
-            status: 'normal'
+          name: reportForm.name,
+          address: reportForm.address,
+          lng: reportForm.lng,
+          lat: reportForm.lat,
+          status: 'normal'
         });
-        alert('新站点已添加');
+        
         fetchStations();
       } else {
         // 志愿者提交审核
         await api.post('/audit', {
-            name: reportForm.name,
-            address: reportForm.address,
-            lng: reportForm.lng,
-            lat: reportForm.lat
+          name: reportForm.name,
+          address: reportForm.address,
+          lng: reportForm.lng,
+          lat: reportForm.lat
         });
         alert('申请已提交，等待审核');
       }
-      
+
       if ((window as any).tempMarker) {
         (window as any).tempMarker.setMap(null);
         (window as any).tempMarker = null;
       }
-      
+
       showReportModal.value = false;
       reportForm.name = '';
       reportForm.address = '';
@@ -310,7 +347,7 @@ export function useMapLogic() {
       reportForm.lat = null;
 
     } catch (e: any) {
-        alert(e.response?.data?.message || '操作失败');
+      alert(e.response?.data?.message || '操作失败');
     }
   };
 
@@ -320,16 +357,16 @@ export function useMapLogic() {
       return;
     }
     try {
-        await api.post('/report', {
-            stationId: issueForm.stationId,
-            type: issueForm.type,
-            desc: issueForm.desc
-        });
-        alert('反馈已提交，管理人员将尽快处理');
-        showIssueModal.value = false;
-        issueForm.desc = '';
+      await api.post('/report', {
+        stationId: issueForm.stationId,
+        type: issueForm.type,
+        desc: issueForm.desc
+      });
+      alert('反馈已提交，管理人员将尽快处理');
+      showIssueModal.value = false;
+      issueForm.desc = '';
     } catch (e: any) {
-        alert(e.response?.data?.message || '提交失败');
+      alert(e.response?.data?.message || '提交失败');
     }
   };
 
@@ -340,14 +377,14 @@ export function useMapLogic() {
   const reportFull = async (station: any) => {
     if (confirm(`确定要报告 "${station.name}" 已满吗？`)) {
       try {
-          await api.post('/report', {
-              stationId: station.id,
-              type: 'full',
-              desc: '用户快速报告：站点已满'
-          });
-          alert('感谢您的反馈！');
+        await api.post('/report', {
+          stationId: station.id,
+          type: 'full',
+          desc: '用户快速报告：站点已满'
+        });
+        alert('感谢您的反馈！');
       } catch (e: any) {
-          alert(e.response?.data?.message || '提交失败');
+        alert(e.response?.data?.message || '提交失败');
       }
     }
   };
@@ -362,15 +399,15 @@ export function useMapLogic() {
 
   const submitEdit = async () => {
     try {
-        await api.put(`/stations/${editForm.id}`, { 
-            name: editForm.name,
-            address: editForm.address,
-            status: editForm.status 
-        });
-        showEditModal.value = false;
-        fetchStations();
+      await api.put(`/stations/${editForm.id}`, {
+        name: editForm.name,
+        address: editForm.address,
+        status: editForm.status
+      });
+      showEditModal.value = false;
+      fetchStations();
     } catch (e: any) {
-        alert(e.response?.data?.message || '更新失败');
+      alert(e.response?.data?.message || '更新失败');
     }
   };
 
@@ -382,44 +419,44 @@ export function useMapLogic() {
   const confirmDelete = async () => {
     if (!deleteTarget.value) return;
     try {
-        await api.delete(`/stations/${deleteTarget.value.id}`);
-        fetchStations();
-        showDeleteModal.value = false;
-        deleteTarget.value = null;
+      await api.delete(`/stations/${deleteTarget.value.id}`);
+      fetchStations();
+      showDeleteModal.value = false;
+      deleteTarget.value = null;
     } catch (e: any) {
-        alert(e.response?.data?.message || '删除失败');
+      alert(e.response?.data?.message || '删除失败');
     }
   };
 
   const approveAudit = async (audit: any) => {
     try {
-        await api.post(`/audit/${audit.id}/approve`);
-        alert('已通过申请并创建新站点');
-        fetchAudits();
-        fetchStations();
+      await api.post(`/audit/${audit.id}/approve`);
+      alert('已通过申请并创建新站点');
+      fetchAudits();
+      fetchStations();
     } catch (e: any) {
-        alert(e.response?.data?.message || '操作失败');
+      alert(e.response?.data?.message || '操作失败');
     }
   };
 
   const rejectAudit = async (audit: any) => {
-    if(!confirm('确定拒绝该申请吗？')) return;
+    if (!confirm('确定拒绝该申请吗？')) return;
     try {
-        await api.post(`/audit/${audit.id}/reject`);
-        alert('已拒绝该申请');
-        fetchAudits();
+      await api.post(`/audit/${audit.id}/reject`);
+      alert('已拒绝该申请');
+      fetchAudits();
     } catch (e: any) {
-        alert(e.response?.data?.message || '操作失败');
+      alert(e.response?.data?.message || '操作失败');
     }
   };
 
   const resolveReport = async (report: any) => {
     try {
-        await api.post(`/report/${report.id}/resolve`);
-        alert('已标记为处理完成');
-        fetchReports();
+      await api.post(`/report/${report.id}/resolve`);
+      alert('已标记为处理完成');
+      fetchReports();
     } catch (e: any) {
-        alert(e.response?.data?.message || '操作失败');
+      alert(e.response?.data?.message || '操作失败');
     }
   };
 

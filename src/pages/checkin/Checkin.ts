@@ -4,7 +4,7 @@ import {
   submitCheckin,
   getCheckinHistory,
   getAuditStats,
-  getPendingRecords,
+  getAuditRecords,
   approveCheckin,
   rejectCheckin,
   getStations,
@@ -159,12 +159,16 @@ export function useCheckin() {
           '其他垃圾': 0.3
         };
 
+        const category = topResult.Category || topResult.category || '其他垃圾';
+        const rubbishName = topResult.Rubbish || topResult.rubbish || '未知物品';
+        const rubbishScore = topResult.RubbishScore || topResult.rubbishScore || 0;
+
         recognitionResult.value = {
-          category: topResult.category,
-          rubbishName: topResult.rubbish,
-          confidence: Math.round(topResult.rubbishScore * 100),
-          estimatedWeight: weightMap[topResult.category] || 0.3,
-          points: pointsMap[topResult.category] || 15
+          category,
+          rubbishName,
+          confidence: Math.round(rubbishScore * 100),
+          estimatedWeight: weightMap[category] || 0.3,
+          points: pointsMap[category] || 15
         };
 
         aiResult.value = true;
@@ -233,38 +237,56 @@ export function useCheckin() {
       return;
     }
 
-    const { category, rubbishName, estimatedWeight, points } = recognitionResult.value;
+    const { category, rubbishName, estimatedWeight, points, confidence } = recognitionResult.value;
 
     try {
       const res = await submitCheckin({
         type: `AI识别 (${rubbishName})`,
         weight: estimatedWeight,
         points: points,
-        imageUrl: uploadedImageUrl.value
+        imageUrl: uploadedImageUrl.value,
+        confidence: confidence // 传递置信度给后端
       });
 
       if (res.success) {
-        showToast(`打卡确认成功！积分 +${points}`, 'success');
+        // 根据返回状态显示不同提示
+        if (res.status === 'approved') {
+          showToast(`打卡成功！积分 +${points}`, 'success');
+          // 更新积分
+          if (store.user) {
+            store.setPoints(res.points);
+          }
+        } else if (res.status === 'pending') {
+          showToast('已提交审核，通过后将获得积分', 'info');
+        }
+
         aiResult.value = false;
         recognitionResult.value = null;
+
         // 添加记录
         recentHistory.value.unshift({
           id: Date.now(),
           station: '智能识别终端',
           type: `AI识别 (${rubbishName})`,
-          points: points,
+          points: res.status === 'approved' ? points : 0,
           time: '刚刚',
-          status: 'success'
+          status: res.status === 'approved' ? 'success' : 'pending'
         });
-        // 更新积分
-        if (store.user) {
-          store.setPoints(res.points);
-        }
       } else {
-        showToast('打卡失败: ' + res.message, 'error');
+        // 处理被拒绝的情况（置信度过低）
+        if (res.status === 'rejected') {
+          showToast(res.message || '识别置信度过低，请重新拍照', 'error');
+        } else {
+          showToast('打卡失败: ' + res.message, 'error');
+        }
       }
-    } catch (error) {
-      showToast('提交失败，请重试', 'error');
+    } catch (error: any) {
+      // 处理 400 错误（被拒绝）
+      if (error.response?.data?.status === 'rejected') {
+        showToast(error.response.data.message || '识别置信度过低，请重新拍照', 'error');
+      } else {
+        showToast('提交失败，请重试', 'error');
+      }
       console.error(error);
     }
   };
@@ -326,16 +348,31 @@ export function useCheckin() {
     }
   };
 
-  // 待审核记录
-  const pendingRecords = ref<PendingRecord[]>([]);
+  // 审核筛选状态
+  const auditFilter = ref<'pending' | 'approved' | 'rejected'>('pending');
+
+  // 审核记录（根据筛选状态动态命名）
+  const auditRecords = ref<PendingRecord[]>([]);
+
+  // 标题映射
+  const sectionTitle = computed(() => {
+    const titles: Record<string, string> = {
+      pending: '待处理申请',
+      approved: '已通过申请',
+      rejected: '已驳回申请'
+    };
+    return titles[auditFilter.value] || '待处理申请';
+  });
 
   // 加载审核数据
-  const loadAuditData = async () => {
+  const loadAuditData = async (status?: 'pending' | 'approved' | 'rejected') => {
     isLoadingAudit.value = true;
+    const filterStatus = status || auditFilter.value;
+
     try {
       const [statsRes, recordsRes] = await Promise.all([
         getAuditStats(),
-        getPendingRecords()
+        getAuditRecords(filterStatus)
       ]);
 
       if (statsRes.success) {
@@ -343,13 +380,19 @@ export function useCheckin() {
       }
 
       if (recordsRes.success) {
-        pendingRecords.value = recordsRes.data;
+        auditRecords.value = recordsRes.data;
       }
     } catch (error) {
       console.error('Failed to load audit data:', error);
     } finally {
       isLoadingAudit.value = false;
     }
+  };
+
+  // 设置筛选状态并重新加载
+  const setAuditFilter = (status: 'pending' | 'approved' | 'rejected') => {
+    auditFilter.value = status;
+    loadAuditData(status);
   };
 
   // 审核统计数据
@@ -374,7 +417,7 @@ export function useCheckin() {
       if (res.success) {
         showToast(`已通过 ${record.user} 的申请`, 'success');
         // 从列表中移除
-        pendingRecords.value = pendingRecords.value.filter(r => r.id !== record.id);
+        auditRecords.value = auditRecords.value.filter((r: PendingRecord) => r.id !== record.id);
         // 更新统计
         auditStatsData.value.pending = Math.max(0, auditStatsData.value.pending - 1);
         auditStatsData.value.approved += 1;
@@ -393,7 +436,7 @@ export function useCheckin() {
         if (res.success) {
           showToast('申请已驳回', 'info');
           // 从列表中移除
-          pendingRecords.value = pendingRecords.value.filter(r => r.id !== record.id);
+          auditRecords.value = auditRecords.value.filter((r: PendingRecord) => r.id !== record.id);
           // 更新统计
           auditStatsData.value.pending = Math.max(0, auditStatsData.value.pending - 1);
           auditStatsData.value.rejected += 1;
@@ -439,7 +482,10 @@ export function useCheckin() {
     stations,
     generateQR,
     downloadQR,
-    pendingRecords,
+    auditRecords,
+    auditFilter,
+    sectionTitle,
+    setAuditFilter,
     auditStats,
     previewImageState,
     approve,

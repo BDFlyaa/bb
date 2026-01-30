@@ -112,16 +112,16 @@ router.get('/history', authenticateToken, async (req, res) => {
     }
 });
 
-// 提交打卡记录
+// 提交打卡记录（智能审核分流）
 router.post('/', authenticateToken, async (req, res) => {
     try {
-        const { type, weight, points, imageUrl, stationId } = req.body;
+        const { type, weight, points, imageUrl, stationId, confidence } = req.body;
         const userId = req.user.userId;
 
         console.log('=== 打卡请求 ===');
         console.log('req.user:', req.user);
         console.log('userId:', userId);
-        console.log('请求体:', { type, weight, points, imageUrl, stationId });
+        console.log('请求体:', { type, weight, points, imageUrl, stationId, confidence });
 
         // 基础验证
         if (!type || points === undefined) {
@@ -132,6 +132,67 @@ router.post('/', authenticateToken, async (req, res) => {
             console.error('错误: userId 为空！');
             return res.status(401).json({ success: false, message: '用户未登录' });
         }
+
+        // 智能审核分流逻辑
+        const isAICheckin = type.includes('AI');
+        let status = 'approved'; // 默认直接通过
+        let reviewReason = null;
+
+        if (isAICheckin) {
+            const aiConfidence = confidence || 0;
+
+            // 1. 置信度过低（<50%）-> 拒绝，提示重拍
+            if (aiConfidence < 50) {
+                return res.status(400).json({
+                    success: false,
+                    status: 'rejected',
+                    message: '识别置信度过低，请重新拍照'
+                });
+            }
+
+            // 2. 检查是否是首次回收用户
+            const previousCheckinCount = await CheckinRecord.count({
+                where: { userId, status: 'approved' }
+            });
+
+            if (previousCheckinCount === 0) {
+                status = 'pending';
+                reviewReason = '首次回收用户，需人工审核';
+                console.log('首次用户AI打卡，进入审核队列');
+            }
+
+            // 3. 检查当日AI打卡次数（超过5次需审核）
+            if (status === 'approved') {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const todayAICount = await CheckinRecord.count({
+                    where: {
+                        userId,
+                        checkinType: 'ai_recognition',
+                        createdAt: { [Op.gte]: today }
+                    }
+                });
+
+                if (todayAICount >= 5) {
+                    status = 'pending';
+                    reviewReason = '当日AI打卡超过5次，需人工审核';
+                    console.log('当日AI打卡超限，进入审核队列');
+                }
+            }
+
+            // 4. 中等置信度（50-79%）-> 需审核
+            if (status === 'approved' && aiConfidence < 80) {
+                status = 'pending';
+                reviewReason = `AI置信度为${aiConfidence}%，需人工确认`;
+                console.log('中等置信度，进入审核队列');
+            }
+
+            // 5. 高置信度（≥80%）-> 直接通过（已是默认状态）
+        }
+        // 扫码打卡 -> 直接通过（默认状态）
+
+        console.log(`审核分流结果: status=${status}, reason=${reviewReason}`);
 
         // 1. 处理图片 - 将 base64 保存为文件
         const savedImageUrl = imageUrl ? saveBase64Image(imageUrl) : '';
@@ -144,45 +205,62 @@ router.post('/', authenticateToken, async (req, res) => {
             type,
             weight: weight || 0,
             points,
-            checkinType: type.includes('AI') ? 'ai_recognition' : 'scan',
+            checkinType: isAICheckin ? 'ai_recognition' : 'scan',
             imageUrl: savedImageUrl || '',
-            status: 'approved' // 简化逻辑：直接通过
+            status
         });
 
-        console.log('打卡记录创建成功:', record.id);
+        console.log('打卡记录创建成功:', record.id, 'status:', status);
 
-        // 2. 更新用户积分
-        const user = await User.findByPk(userId);
-        if (user) {
-            user.points = (user.points || 0) + points;
+        let userPoints = 0;
+        let taskBonusPoints = 0;
 
-            // 3. 检查是否是首次回收，如果是则自动完成任务1并奖励50积分
-            const previousCheckinCount = await CheckinRecord.count({
-                where: {
-                    userId,
-                    status: 'approved',
-                    id: { [Op.ne]: record.id } // 排除当前记录
+        // 3. 只有直接通过的才立即给用户加积分
+        if (status === 'approved') {
+            const user = await User.findByPk(userId);
+            if (user) {
+                user.points = (user.points || 0) + points;
+
+                // 检查是否是首次回收，奖励任务积分
+                const previousApprovedCount = await CheckinRecord.count({
+                    where: {
+                        userId,
+                        status: 'approved',
+                        id: { [Op.ne]: record.id }
+                    }
+                });
+
+                if (previousApprovedCount === 0) {
+                    taskBonusPoints = 50;
+                    user.points += taskBonusPoints;
+                    console.log('首次回收奖励任务积分:', taskBonusPoints);
                 }
-            });
 
-            let taskBonusPoints = 0;
-            if (previousCheckinCount === 0) {
-                // 首次回收，奖励任务积分
-                taskBonusPoints = 50;
-                user.points += taskBonusPoints;
-                console.log('首次回收奖励任务积分:', taskBonusPoints);
+                await user.save();
+                userPoints = user.points;
+                console.log('用户积分更新成功:', userPoints);
             }
-
-            await user.save();
-            console.log('用户积分更新成功:', user.points, taskBonusPoints > 0 ? `(含任务奖励${taskBonusPoints})` : '');
         }
 
-        res.json({
+        // 构建响应
+        const response = {
             success: true,
-            message: '打卡成功',
-            points: user ? user.points : points,
-            record
-        });
+            status,
+            message: status === 'approved' ? '打卡成功' : '已提交审核，通过后将获得积分',
+            points: status === 'approved' ? userPoints : 0,
+            pendingPoints: status === 'pending' ? points : 0,
+            record: {
+                id: record.id,
+                status: record.status,
+                points: record.points
+            }
+        };
+
+        if (reviewReason) {
+            response.reviewReason = reviewReason;
+        }
+
+        res.json(response);
     } catch (error) {
         console.error('打卡失败 - 详细错误:', error);
         res.status(500).json({ success: false, message: '服务器内部错误' });
@@ -234,7 +312,72 @@ router.get('/admin/audit-stats', authenticateToken, async (req, res) => {
     }
 });
 
-// 获取待审核记录列表
+// 获取审核记录列表（支持按状态筛选）
+router.get('/admin/records', authenticateToken, async (req, res) => {
+    try {
+        // 验证是否是管理员
+        const user = await User.findByPk(req.user.userId);
+        if (!user || (user.role !== 'system_admin')) {
+            return res.status(403).json({ success: false, message: '无权限访问' });
+        }
+
+        const limit = parseInt(req.query.limit) || 50;
+        const offset = parseInt(req.query.offset) || 0;
+        const status = req.query.status || 'pending'; // 支持 pending, approved, rejected
+
+        const whereClause = { status };
+
+        const records = await CheckinRecord.findAll({
+            where: whereClause,
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'username']
+                },
+                {
+                    model: RecycleStation,
+                    as: 'station',
+                    attributes: ['id', 'name']
+                }
+            ],
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset
+        });
+
+        // 获取服务器基础 URL
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+        // 格式化返回数据
+        const formattedRecords = records.map(record => ({
+            id: record.id,
+            user: record.user?.username || '未知用户',
+            userId: record.user?.id,
+            img: record.imageUrl ? `${baseUrl}${record.imageUrl}` : '',
+            aiResult: `${record.type} ${record.weight}kg`,
+            time: new Date(record.createdAt).toLocaleString('zh-CN', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            }),
+            points: record.points,
+            stationName: record.station?.name || '未知站点',
+            status: record.status
+        }));
+
+        res.json({
+            success: true,
+            data: formattedRecords
+        });
+    } catch (error) {
+        console.error('获取审核记录失败:', error);
+        res.status(500).json({ success: false, message: '服务器内部错误' });
+    }
+});
+
+// 获取待审核记录列表（兼容旧接口）
 router.get('/admin/pending', authenticateToken, async (req, res) => {
     try {
         // 验证是否是管理员
@@ -265,12 +408,15 @@ router.get('/admin/pending', authenticateToken, async (req, res) => {
             offset
         });
 
+        // 获取服务器基础 URL
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+
         // 格式化返回数据
         const formattedRecords = records.map(record => ({
             id: record.id,
             user: record.user?.username || '未知用户',
             userId: record.user?.id,
-            img: record.imageUrl || '',
+            img: record.imageUrl ? `${baseUrl}${record.imageUrl}` : '',
             aiResult: `${record.type} ${record.weight}kg`,
             time: new Date(record.createdAt).toLocaleString('zh-CN', {
                 month: '2-digit',

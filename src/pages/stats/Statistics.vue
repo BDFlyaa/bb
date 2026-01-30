@@ -71,7 +71,7 @@
             <div class="chart-container-pie">
                <!-- 左侧：CSS 3D 饼图/环形图 -->
                <div class="pie-chart-wrapper">
-                 <div class="pie-chart-spinner"></div>
+                 <div class="pie-chart-spinner" :style="{ background: pieChartGradient }"></div>
                  <div class="inner-circle">
                    <span class="total-label">总回收量</span>
                    <span class="total-value">{{ overview.totalWeight }}</span>
@@ -80,37 +80,16 @@
                
                <!-- 右侧：图例详情 -->
                <div class="chart-legend">
-                 <div class="legend-item">
+                 <div class="legend-item" v-for="cat in categoryBreakdown.categories" :key="cat.name">
                    <div class="info-row">
-                     <span class="dot" style="background: #00e5ff; box-shadow: 0 0 8px #00e5ff;"></span>
-                     <span class="name">PET 塑料瓶</span>
-                     <span class="val">35%</span>
+                     <span class="dot" :style="{ background: cat.color, boxShadow: '0 0 8px ' + cat.color }"></span>
+                     <span class="name">{{ cat.name }}</span>
+                     <span class="val">{{ cat.percentage }}%</span>
                    </div>
-                   <div class="bar-bg"><div class="bar" style="width: 35%; background: #00e5ff"></div></div>
+                   <div class="bar-bg"><div class="bar" :style="{ width: cat.percentage + '%', background: cat.color }"></div></div>
                  </div>
-                 <div class="legend-item">
-                   <div class="info-row">
-                     <span class="dot" style="background: #00ff9d; box-shadow: 0 0 8px #00ff9d;"></span>
-                     <span class="name">海洋渔网</span>
-                     <span class="val">25%</span>
-                   </div>
-                   <div class="bar-bg"><div class="bar" style="width: 25%; background: #00ff9d"></div></div>
-                 </div>
-                 <div class="legend-item">
-                   <div class="info-row">
-                     <span class="dot" style="background: #00b4db; box-shadow: 0 0 8px #00b4db;"></span>
-                     <span class="name">HDPE 塑料</span>
-                     <span class="val">20%</span>
-                   </div>
-                   <div class="bar-bg"><div class="bar" style="width: 20%; background: #00b4db"></div></div>
-                 </div>
-                 <div class="legend-item">
-                   <div class="info-row">
-                     <span class="dot" style="background: #bd93f9; box-shadow: 0 0 8px #bd93f9;"></span>
-                     <span class="name">其他废弃物</span>
-                     <span class="val">20%</span>
-                   </div>
-                   <div class="bar-bg"><div class="bar" style="width: 20%; background: #bd93f9"></div></div>
+                 <div v-if="categoryBreakdown.categories.length === 0" class="empty-state">
+                   暂无分类数据
                  </div>
                </div>
             </div>
@@ -243,29 +222,20 @@
               我的勋章墙
             </h3>
             <div class="medal-grid">
-              <div class="medal-slot unlocked" title="初级卫士">
+              <div 
+                class="medal-slot" 
+                :class="{ unlocked: medal.unlocked, locked: !medal.unlocked }"
+                v-for="medal in userStats.medals" 
+                :key="medal.id"
+                :title="medal.unlocked ? medal.name : `${medal.name}（未解锁）- ${medal.description}`"
+              >
                 <div class="medal-icon">
-                  <img src="../../assets/images/铜牌.png" alt="初级卫士" style="width: 1em; height: 1em; object-fit: contain;">
+                  <img :src="getMedalIcon(medal.icon)" :alt="medal.name" style="width: 1em; height: 1em; object-fit: contain;">
                 </div>
-                <span>初级卫士</span>
+                <span>{{ medal.name }}</span>
               </div>
-              <div class="medal-slot unlocked" title="分类达人">
-                <div class="medal-icon">
-                   <img src="../../assets/images/分类达人.png" alt="分类达人" style="width: 1em; height: 1em; object-fit: contain;">
-                </div>
-                <span>分类达人</span>
-              </div>
-              <div class="medal-slot unlocked" title="海洋之友">
-                <div class="medal-icon">
-                  <img src="../../assets/images/海洋之友.png" alt="海洋之友" style="width: 1em; height: 1em; object-fit: contain;">
-                </div>
-                <span>海洋之友</span>
-              </div>
-              <div class="medal-slot locked" title="环保大师">
-                <div class="medal-icon">
-                  <img src="../../assets/images/环保大师.png" alt="环保大师" style="width: 1em; height: 1em; object-fit: contain;">
-                </div>
-                <span>环保大师</span>
+              <div v-if="!userStats.medals || userStats.medals.length === 0" class="empty-state">
+                暂无勋章数据
               </div>
             </div>
           </div>
@@ -336,10 +306,13 @@ import {
     recentActivities,
     rankings,
     weeklyTrend,
+    categoryBreakdown,
+    pieChartGradient,
     userStats,
     store,
     initStatistics,
-    handleTaskComplete
+    handleTaskComplete,
+    getMedalIcon
 } from './Statistics';
 
 onMounted(() => {

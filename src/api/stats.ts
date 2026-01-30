@@ -32,11 +32,31 @@ export interface InventoryData {
   }[];
 }
 
+export interface CategoryItem {
+  name: string;
+  weight: string;
+  percentage: number;
+  color: string;
+}
+
+export interface CategoryBreakdown {
+  totalWeight: string;
+  categories: CategoryItem[];
+}
+
 export interface TaskStatus {
   id: number;
   text: string;
   reward: string;
   done: boolean;
+}
+
+export interface Medal {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  unlocked: boolean;
 }
 
 export interface UserStats {
@@ -49,6 +69,7 @@ export interface UserStats {
   levelProgress: number;
   pointsToNextLevel: number;
   tasks: TaskStatus[];
+  medals: Medal[];
 }
 
 export const getOverview = () => {
@@ -69,6 +90,10 @@ export const getWeeklyTrend = () => {
 
 export const getInventory = () => {
   return request.get<any, InventoryData>('/stats/inventory');
+};
+
+export const getCategoryBreakdown = () => {
+  return request.get<any, CategoryBreakdown>('/stats/category-breakdown');
 };
 
 export const getUserStats = (userId: number) => {
