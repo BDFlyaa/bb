@@ -37,8 +37,13 @@
 }
 
 @keyframes rotation {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Layout */
@@ -52,7 +57,8 @@
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* 增加间距 */
+  gap: 20px;
+  /* 增加间距 */
 }
 
 .task-card {
@@ -128,7 +134,9 @@
   border: 1px solid rgba(0, 180, 219, 0.3);
 }
 
-.tag:hover { background: rgba(0, 180, 219, 0.3); }
+.tag:hover {
+  background: rgba(0, 180, 219, 0.3);
+}
 
 /* Publish Card */
 .publish-card {
@@ -296,6 +304,7 @@
 .comment-list::-webkit-scrollbar {
   width: 4px;
 }
+
 .comment-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
@@ -466,8 +475,15 @@
 }
 
 @keyframes modalScale {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .modal-header {
@@ -489,7 +505,9 @@
   opacity: 0.5;
 }
 
-.close-btn:hover { opacity: 1; }
+.close-btn:hover {
+  opacity: 1;
+}
 
 .modal-body p {
   line-height: 1.6;
@@ -517,10 +535,13 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition: opacity 0.3s ease;
 }
-.fade-enter-from, .fade-leave-to {
+
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 
@@ -535,30 +556,52 @@
   z-index: 1000;
   color: #fff;
   font-weight: bold;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
-.toast-message.success { background: rgba(0, 180, 219, 0.9); }
-.toast-message.error { background: rgba(255, 71, 87, 0.9); }
+.toast-message.success {
+  background: rgba(0, 180, 219, 0.9);
+}
 
-.toast-enter-active, .toast-leave-active {
+.toast-message.error {
+  background: rgba(255, 71, 87, 0.9);
+}
+
+.toast-enter-active,
+.toast-leave-active {
   transition: all 0.3s ease;
 }
-.toast-enter-from, .toast-leave-to {
+
+.toast-enter-from,
+.toast-leave-to {
   opacity: 0;
   transform: translate(-50%, -20px);
 }
 
-.user-meta { display: flex; align-items: center; gap: 8px; }
-.mini-avatar { width: 24px; height: 24px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; }
+.user-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-avatar {
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
 
 /* Leaderboard */
-.leaderboard { 
+.leaderboard {
   padding: 24px;
 }
 
-.leaderboard h3 { 
-  margin-bottom: 25px; 
+.leaderboard h3 {
+  margin-bottom: 25px;
   font-size: 1.2rem;
   background: linear-gradient(to right, #00e5ff, #00b4db);
   -webkit-background-clip: text;
@@ -569,58 +612,58 @@
   gap: 10px;
 }
 
-.rank-list { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 18px; 
+.rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-.rank-item { 
-  display: flex; 
-  align-items: center; 
-  gap: 15px; 
-  padding-bottom: 15px; 
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
+.rank-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
   transition: all 0.2s ease;
 }
 
-.rank-item:last-child { 
-  border-bottom: none; 
+.rank-item:last-child {
+  border-bottom: none;
 }
 
 .rank-item:hover {
   transform: translateX(5px);
 }
 
-.rank-num { 
-  width: 32px; 
-  height: 32px; 
-  border-radius: 50%; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  font-size: 0.9rem; 
-  background: rgba(255, 255, 255, 0.1); 
+.rank-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.1);
   font-weight: 800;
   flex-shrink: 0;
 }
 
-.rank-num.top-1 { 
-  background: linear-gradient(135deg, #ffd700, #ffaa00); 
-  color: #000; 
+.rank-num.top-1 {
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  color: #000;
   box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
 }
 
-.rank-num.top-2 { 
-  background: linear-gradient(135deg, #e0e0e0, #bdbdbd); 
-  color: #000; 
+.rank-num.top-2 {
+  background: linear-gradient(135deg, #e0e0e0, #bdbdbd);
+  color: #000;
   box-shadow: 0 0 15px rgba(224, 224, 224, 0.3);
 }
 
-.rank-num.top-3 { 
-  background: linear-gradient(135deg, #cd7f32, #a0522d); 
-  color: #000; 
+.rank-num.top-3 {
+  background: linear-gradient(135deg, #cd7f32, #a0522d);
+  color: #000;
   box-shadow: 0 0 15px rgba(205, 127, 50, 0.3);
 }
 
@@ -645,7 +688,7 @@
 
 .medal {
   font-size: 1.2rem;
-  filter: drop-shadow(0 0 5px rgba(255,255,255,0.3));
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
 }
 
 .mall-promo {
@@ -749,8 +792,15 @@
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 审核列表优化 */
@@ -803,7 +853,7 @@
 }
 
 .admin-table th {
-  text-align: left;
+  text-align: center;
   padding: 16px 20px;
   color: #888;
   font-weight: 500;
@@ -822,6 +872,7 @@
 }
 
 .admin-table td {
+  text-align: center;
   padding: 16px 20px;
   vertical-align: middle;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -877,6 +928,19 @@
   border-color: #ff4757;
 }
 
+
+
+.btn-info {
+  background: rgba(0, 180, 219, 0.1);
+  color: #00b4db;
+  border: 1px solid rgba(0, 180, 219, 0.2);
+}
+
+.btn-info:hover {
+  background: #00b4db;
+  color: #fff;
+}
+
 .btn-ghost-revised {
   background: rgba(255, 255, 255, 0.05);
   color: #aaa;
@@ -888,7 +952,7 @@
   color: #fff;
 }
 
-/* 复用 Mall.css 的 Badge 样式 */
+
 .badge {
   background: #ff4757;
   color: #fff;
@@ -905,4 +969,6 @@
   font-size: 1.1rem;
 }
 
-.full-width { width: 100%; }
+.full-width {
+  width: 100%;
+}

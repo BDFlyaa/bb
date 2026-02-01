@@ -197,6 +197,12 @@
 
       <!-- 活动管理 -->
       <div v-else class="admin-content glass-panel">
+        <div class="action-bar" style="margin-bottom: 20px; display: flex; justify-content: flex-end; padding: 20px 20px 0;">
+          <button class="btn-primary" @click="logic.openActivityModal()" style="padding: 10px 24px;">
+            <span style="font-weight: bold; margin-right: 5px;">＋</span> 发布新活动
+          </button>
+        </div>
+
         <div class="table-container">
           <table class="admin-table">
             <thead>
@@ -215,14 +221,53 @@
                 <td>{{ task.date }}</td>
                 <td><span class="status-tag success">进行中</span></td>
                 <td>
-                  <button class="btn-sm btn-ghost">编辑</button>
-                  <button class="btn-sm btn-danger" @click="cancelEvent(task)">取消</button>
+                  <button class="btn-sm btn-info" @click="logic.openActivityModal(task)">编辑</button>
+                  <button class="btn-sm btn-warning" @click="logic.cancelActivity(task)" style="margin-left: 5px;">取消</button>
+                  <button class="btn-sm btn-danger" @click="logic.deleteActivity(task)" style="margin-left: 5px;">删除</button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
+
+    <!-- 活动发布弹窗 -->
+    <div v-if="logic.showActivityModal.value" class="modal-overlay" @click="logic.closeActivityModal">
+      <div class="glass-panel modal-card" @click.stop style="width: 500px; max-width: 90%;">
+        <div class="modal-header">
+          <h3>{{ logic.editingTaskId.value ? '编辑活动' : '发布新活动' }}</h3>
+          <span class="close-btn" @click="logic.closeActivityModal">×</span>
+        </div>
+        <div class="modal-body form-body">
+          <div class="form-group">
+            <label>活动标题</label>
+            <input v-model="logic.newActivity.value.title" type="text" placeholder="例如：海滩净滩行动" />
+          </div>
+          <div class="form-group">
+            <label>活动地点</label>
+            <input v-model="logic.newActivity.value.loc" type="text" placeholder="例如：珍珠湾沙滩" />
+          </div>
+          <div class="form-group">
+            <label>活动日期</label>
+            <input v-model="logic.newActivity.value.date" type="date" />
+          </div>
+          <div class="form-group">
+            <label>活动标签</label>
+            <select v-model="logic.newActivity.value.tag">
+              <option value="组队">组队</option>
+              <option value="讲座">讲座</option>
+              <option value="义卖">义卖</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" @click="logic.closeActivityModal">取消</button>
+          <button class="btn-primary" @click="logic.publishActivity" :disabled="logic.isPublishingActivity.value">
+            {{ logic.isPublishingActivity.value ? '保存中...' : (logic.editingTaskId.value ? '确认修改' : '确认发布') }}
+          </button>
+        </div>
+      </div>
+    </div>
     </div>
 
     <!-- 图片预览遮罩 -->
@@ -274,7 +319,7 @@ onMounted(() => {
 
 // 管理员特有方法（目前逻辑主要在 .ts 中）
 const muteUser = (user: string) => alert(`用户 ${user} 已被禁言 24 小时`);
-const cancelEvent = (task: any) => alert(`活动 ${task.title} 已取消`);
+
 </script>
 
 <style scoped>
@@ -341,7 +386,40 @@ const cancelEvent = (task: any) => alert(`活动 ${task.title} 已取消`);
   font-size: 0.9rem;
 }
 
+
 .btn-more:hover {
   text-decoration: underline;
+}
+
+/* 表单样式 */
+.form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 10px 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #cceeff;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  outline: none;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #00b4db;
+  background: rgba(255, 255, 255, 0.15);
 }
 </style>

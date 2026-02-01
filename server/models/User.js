@@ -31,6 +31,9 @@ const User = sequelize.define('User', {
   points: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
+    validate: {
+      min: 0  // 积分不能为负数
+    }
   },
   mutedUntil: {
     type: DataTypes.DATE,

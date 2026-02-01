@@ -3,6 +3,9 @@ import { Op, fn, col, literal } from 'sequelize';
 import CheckinRecord from '../models/CheckinRecord.js';
 import User from '../models/User.js';
 import RecycleStation from '../models/RecycleStation.js';
+import TaskCompletion from '../models/TaskCompletion.js';
+import TaskParticipation from '../models/TaskParticipation.js';
+import Inventory from '../models/Inventory.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -112,16 +115,21 @@ router.get('/recent-activities', async (req, res) => {
                 { model: User, as: 'user', attributes: ['username'] }
             ],
             order: [['createdAt', 'DESC']],
-            limit: 10
+            limit: 20
         });
 
-        const formattedActivities = activities.map(a => ({
-            id: a.id,
-            time: new Date(a.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-            user: a.user?.username || '匿名用户',
-            weight: a.weight,
-            type: a.type
-        }));
+        const formattedActivities = activities.map(a => {
+            const d = new Date(a.createdAt);
+            const timeStr = `${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+
+            return {
+                id: a.id,
+                time: timeStr,
+                user: a.user?.username || '匿名用户',
+                weight: a.weight,
+                type: a.type
+            };
+        });
 
         res.json(formattedActivities);
     } catch (error) {
@@ -159,38 +167,51 @@ router.get('/rankings', async (req, res) => {
     }
 });
 
-// 获取7日回收趋势
+// 获取7日回收趋势（优化版：单次查询）
 router.get('/weekly-trend', async (req, res) => {
     try {
-        const days = [];
-        const results = [];
+        // 计算7天前的起始日期
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
 
-        // 获取过去7天的数据
+        // 单次查询获取7天内的数据，按日期分组
+        const dailyStats = await CheckinRecord.findAll({
+            attributes: [
+                [fn('DATE', col('createdAt')), 'date'],
+                [fn('SUM', col('weight')), 'totalWeight']
+            ],
+            where: {
+                status: 'approved',
+                createdAt: { [Op.gte]: sevenDaysAgo }
+            },
+            group: [fn('DATE', col('createdAt'))],
+            raw: true
+        });
+
+        // 构建日期到重量的映射
+        const weightByDate = {};
+        dailyStats.forEach(stat => {
+            const dateKey = stat.date;
+            weightByDate[dateKey] = parseFloat(stat.totalWeight || 0);
+        });
+
+        // 生成过去7天的数据
+        const days = [];
+        const weights = [];
+        const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
             date.setDate(date.getDate() - i);
             date.setHours(0, 0, 0, 0);
 
-            const nextDate = new Date(date);
-            nextDate.setDate(nextDate.getDate() + 1);
-
-            const dayResult = await CheckinRecord.findOne({
-                attributes: [[fn('SUM', col('weight')), 'dayWeight']],
-                where: {
-                    status: 'approved',
-                    createdAt: {
-                        [Op.gte]: date,
-                        [Op.lt]: nextDate
-                    }
-                }
-            });
-
-            const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            const dateKey = date.toISOString().slice(0, 10);
             days.push(weekdays[date.getDay()]);
-            results.push(parseFloat((parseFloat(dayResult?.dataValues?.dayWeight || 0)).toFixed(2)));
+            weights.push(parseFloat((weightByDate[dateKey] || 0).toFixed(2)));
         }
 
-        res.json({ days, weights: results });
+        res.json({ days, weights });
     } catch (error) {
         console.error('获取趋势数据失败:', error);
         res.status(500).json({ message: '服务器内部错误' });
@@ -201,6 +222,11 @@ router.get('/weekly-trend', async (req, res) => {
 router.get('/user/:userId', authenticateToken, async (req, res) => {
     try {
         const userId = req.params.userId;
+
+        // 验证用户只能访问自己的数据（除非是管理员）
+        if (req.user.userId != userId && req.user.role !== 'system_admin') {
+            return res.status(403).json({ message: '无权访问他人数据' });
+        }
 
         // 累计回收量
         const totalResult = await CheckinRecord.findOne({
@@ -228,25 +254,41 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
         const nextLevelPoints = level * 500;
         const levelProgress = ((points % 500) / 500 * 100).toFixed(0);
 
+        // 查询用户任务完成状态
+        const completedTasks = await TaskCompletion.findAll({
+            where: { userId },
+            attributes: ['taskId']
+        });
+        const completedTaskIds = completedTasks.map(t => t.taskId);
+
+        // 查询用户是否参与过海滩清洁活动（任务2）
+        const activityParticipation = await TaskParticipation.findOne({
+            where: {
+                username: user?.username,
+                status: 'joined'
+            }
+        });
+        const hasParticipatedActivity = !!activityParticipation;
+
         // Tasks status
         const tasks = [
             {
                 id: 1,
                 text: "完成一次塑料瓶回收",
                 reward: "+50积分",
-                done: checkinCount > 0
+                done: checkinCount > 0 || completedTaskIds.includes(1)
             },
             {
                 id: 2,
                 text: "参与海滩清洁活动",
                 reward: "+200积分",
-                done: false // 暂时硬编码为未完成，后续需关联活动参与记录
+                done: hasParticipatedActivity || completedTaskIds.includes(2)
             },
             {
                 id: 3,
                 text: "邀请一位好友加入",
                 reward: "+100积分",
-                done: false // 暂时硬编码为未完成，后续需关联邀请记录
+                done: completedTaskIds.includes(3)  // 暂无自动检测，需手动完成
             }
         ];
 
@@ -300,17 +342,39 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
     }
 });
 
-// 物资库存监控（模拟数据）
+// 物资库存监控
 router.get('/inventory', async (req, res) => {
     try {
-        // 返回模拟的库存数据
-        res.json({
-            items: [
-                { name: '回收袋', percentage: 15, warning: true },
-                { name: '手套', percentage: 85, warning: false },
-                { name: '消毒液', percentage: 60, warning: false }
-            ]
+        // 从数据库读取真实库存数据
+        let inventoryItems = await Inventory.findAll({
+            order: [['name', 'ASC']]
         });
+
+        // 如果数据库为空，创建默认数据
+        if (inventoryItems.length === 0) {
+            const defaultItems = [
+                { name: '回收袋', quantity: 15, maxQuantity: 100, warningThreshold: 20, unit: '个' },
+                { name: '手套', quantity: 85, maxQuantity: 100, warningThreshold: 20, unit: '副' },
+                { name: '消毒液', quantity: 60, maxQuantity: 100, warningThreshold: 20, unit: '瓶' }
+            ];
+            await Inventory.bulkCreate(defaultItems);
+            inventoryItems = await Inventory.findAll({ order: [['name', 'ASC']] });
+        }
+
+        // 格式化返回数据
+        const items = inventoryItems.map(item => {
+            const percentage = Math.round((item.quantity / item.maxQuantity) * 100);
+            return {
+                name: item.name,
+                percentage,
+                quantity: item.quantity,
+                maxQuantity: item.maxQuantity,
+                unit: item.unit,
+                warning: percentage <= item.warningThreshold
+            };
+        });
+
+        res.json({ items });
     } catch (error) {
         console.error('获取库存数据失败:', error);
         res.status(500).json({ message: '服务器内部错误' });
@@ -326,6 +390,11 @@ router.post('/complete-task', authenticateToken, async (req, res) => {
             return res.status(400).json({ message: '缺少参数' });
         }
 
+        // 验证用户只能为自己完成任务
+        if (req.user.userId != userId) {
+            return res.status(403).json({ message: '无权为他人完成任务' });
+        }
+
         // 任务奖励映射
         const taskRewards = {
             1: { points: 50, desc: '完成一次塑料瓶回收' },
@@ -338,12 +407,33 @@ router.post('/complete-task', authenticateToken, async (req, res) => {
             return res.status(400).json({ message: '无效的任务ID' });
         }
 
-        // 更新用户积分
+        // 检查任务是否已完成
+        const existingCompletion = await TaskCompletion.findOne({
+            where: { userId, taskId }
+        });
+
+        if (existingCompletion) {
+            return res.status(400).json({
+                message: '该任务已完成，不能重复领取奖励',
+                completedAt: existingCompletion.completedAt
+            });
+        }
+
+        // 获取用户
         const user = await User.findByPk(userId);
         if (!user) {
             return res.status(404).json({ message: '用户不存在' });
         }
 
+        // 记录任务完成
+        await TaskCompletion.create({
+            userId,
+            taskId,
+            pointsAwarded: reward.points,
+            completedAt: new Date()
+        });
+
+        // 更新用户积分
         user.points = (user.points || 0) + reward.points;
         await user.save();
 

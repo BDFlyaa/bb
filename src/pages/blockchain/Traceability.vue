@@ -4,7 +4,7 @@
     <div v-if="!isAdmin">
       <div class="header-section">
         <h2>🔍 溯源查询</h2>
-        <p>输入您的回收批次号，见证塑料瓶的“新生”之旅</p>
+        <p>输入您的回收批次号，查看资源再生详情</p>
       </div>
 
       <div class="search-container">
@@ -12,7 +12,7 @@
           <input 
             type="text" 
             v-model="searchQuery" 
-            placeholder="输入批次号，例如: B-20231024-01" 
+            placeholder="输入批次号，例如: B-20231024-00001" 
             @keyup.enter="handleSearch"
           />
           <button class="btn-primary" @click="handleSearch" :disabled="isLoading">
@@ -32,22 +32,37 @@
 
           <!-- 成功结果 -->
           <template v-else-if="searchResult">
-            <div class="trace-timeline glass-panel">
-              <div 
-                v-for="(item, index) in searchResult.timeline" 
-                :key="index"
-                class="timeline-item" 
-                :class="item.status"
-              >
-                <div class="dot"></div>
-                <div class="time">{{ item.time }}</div>
-                <div class="content">
-                  <h4>{{ item.title }}</h4>
-                  <p>{{ item.desc }}</p>
+            <!-- 基础信息卡片 -->
+            <div class="trace-info glass-panel">
+              <div class="info-header">
+                <h3>📜 批次信息</h3>
+                <span class="status-badge" :class="searchResult.status">{{ searchResult.status === 'completed' ? '已完成' : '处理中' }}</span>
+              </div>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="label">批次编号</span>
+                  <span class="value">{{ searchResult.batchNo }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">回收站点</span>
+                  <span class="value">{{ searchResult.stationName }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">回收时间</span>
+                  <span class="value">{{ searchResult.checkinTime }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">回收重量</span>
+                  <span class="value">{{ searchResult.weight }} kg</span>
+                </div>
+                <div class="info-item full">
+                  <span class="label">数据校验码 (SHA256)</span>
+                  <span class="value mono small">{{ searchResult.hashDigest }}</span>
                 </div>
               </div>
             </div>
 
+            <!-- 成就卡片 -->
             <div class="achievement-card glass-panel">
               <div class="achievement-icon">👚</div>
               <h3>环保成就</h3>
@@ -58,8 +73,7 @@
                 <span>节省石油 {{ searchResult.achievement.oil }}L</span>
               </div>
               <div class="hash-footer">
-                <span class="label">区块链哈希存证:</span>
-                <span class="hash-value">{{ searchResult.achievement.hash }}</span>
+                <span class="label">🛡️ 数据已存证，真实可溯</span>
               </div>
             </div>
           </template>
@@ -70,10 +84,8 @@
     <!-- 管理员视图 -->
     <div v-else>
       <div class="header-section">
-        <h2>🛡️ 溯源链管理</h2>
-        <div class="admin-toolbar">
-          <button class="btn-primary" @click="showLogisticsModal = true">📦 录入物流信息</button>
-        </div>
+        <h2>🗂️ 溯源记录管理</h2>
+        <p>查看系统中的所有回收溯源记录</p>
       </div>
 
       <div class="trace-list glass-panel">
@@ -82,57 +94,32 @@
             <tr>
               <th>批次号</th>
               <th>当前状态</th>
-              <th>最新位置</th>
-              <th>操作员</th>
-              <th>区块链状态</th>
+              <th>来源站点</th>
+              <th>重量</th>
+              <th>数据校验</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="t in blockchainData" :key="t.batch">
-              <td>{{ t.batch }}</td>
+            <tr v-for="t in traceList" :key="t.batchNo">
+              <td>{{ t.batchNo }}</td>
               <td>
                 <span class="status-tag" :class="t.status === 'completed' ? 'verified' : 'pending'">
                   {{ t.status === 'completed' ? '已完成' : '处理中' }}
                 </span>
               </td>
-              <td>{{ t.source }}</td>
-              <td>管理员</td>
-              <td><span class="hash-tag">已上链</span></td>
+              <td>{{ t.stationName }}</td>
+              <td>{{ t.weight }}</td>
+              <td><span class="hash-tag" title="数据校验通过">✔️ 已存证</span></td>
             </tr>
           </tbody>
         </table>
       </div>
-
-      <!-- 物流录入模态框 -->
-      <div v-if="showLogisticsModal" class="modal-overlay">
-        <div class="modal-content glass-panel">
-          <h3>录入物流信息</h3>
-          <div class="form-grid">
-            <div class="input-group">
-              <label>批次号</label>
-              <input type="text" v-model="newLogistics.batch" placeholder="输入批次号" />
-            </div>
-            <div class="input-group">
-              <label>运输单位</label>
-              <input type="text" v-model="newLogistics.carrier" placeholder="例如: 顺丰环保" />
-            </div>
-            <div class="input-group">
-              <label>目的地</label>
-              <input type="text" v-model="newLogistics.dest" placeholder="处理厂名称" />
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-ghost" @click="showLogisticsModal = false">取消</button>
-            <button class="btn-primary" @click="saveLogistics">保存并上链</button>
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import {
     isAdmin,
     searchQuery,
@@ -140,12 +127,17 @@ import {
     isLoading,
     searchError,
     searchResult,
-    showLogisticsModal,
-    newLogistics,
-    blockchainData,
+    traceList,
     handleSearch,
-    saveLogistics
+    fetchAdminList
 } from './Traceability';
+
+onMounted(() => {
+  if (isAdmin.value) {
+    fetchAdminList();
+  }
+});
 </script>
+
 
 <style scoped src="./Traceability.css"></style>

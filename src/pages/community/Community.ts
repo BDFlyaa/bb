@@ -91,6 +91,40 @@ export const previewImage = ref({
   url: ''
 });
 
+// 发布活动相关（管理员）
+export const newActivity = ref({
+  title: '',
+  loc: '',
+  date: '',
+  tag: '组队'
+});
+export const isPublishingActivity = ref(false);
+export const showActivityModal = ref(false);
+export const editingTaskId = ref<number | null>(null);
+
+export const openActivityModal = (task?: any) => {
+  if (task) {
+    editingTaskId.value = task.id;
+    newActivity.value = {
+      title: task.title,
+      loc: task.loc,
+      date: task.date,
+      tag: task.tag || '组队'
+    };
+  } else {
+    editingTaskId.value = null;
+    newActivity.value = { title: '', loc: '', date: '', tag: '组队' };
+  }
+  showActivityModal.value = true;
+};
+
+export const closeActivityModal = () => {
+  showActivityModal.value = false;
+  editingTaskId.value = null;
+  // 重置表单
+  newActivity.value = { title: '', loc: '', date: '', tag: '组队' };
+};
+
 export const openImagePreview = (url: string) => {
   previewImage.value = { show: true, url };
   document.body.style.overflow = 'hidden';
@@ -216,6 +250,81 @@ export const publishPost = async () => {
   } finally {
     isPublishing.value = false;
   }
+};
+
+export const publishActivity = async () => {
+  const { title, loc, date } = newActivity.value;
+  if (!title || !loc || !date) {
+    showToast('请填写完整活动信息', 'error');
+    return;
+  }
+
+  isPublishingActivity.value = true;
+  try {
+    if (editingTaskId.value) {
+      // 编辑模式
+      const res = await axios.put(`${API_BASE}/tasks/${editingTaskId.value}`, newActivity.value);
+      // 更新列表中的数据
+      const index = tasks.value.findIndex(t => t.id === editingTaskId.value);
+      if (index !== -1) {
+        tasks.value[index] = { ...tasks.value[index], ...res.data };
+      }
+      showToast('活动修改成功！');
+    } else {
+      // 新增模式
+      const res = await axios.post(`${API_BASE}/tasks`, newActivity.value);
+      tasks.value.unshift({ ...res.data, isJoined: false });
+      showToast('活动发布成功！');
+    }
+    closeActivityModal();
+  } catch (error: any) {
+    console.error('保存活动失败:', error);
+    showToast(error.response?.data?.message || '操作失败，请稍后再试', 'error');
+  } finally {
+    isPublishingActivity.value = false;
+  }
+};
+
+export const deleteActivity = (task: any) => {
+  openModal(
+    '删除确认',
+    `确定要彻底删除活动 “${task.title}” 吗？此操作不可恢复。`,
+    async () => {
+      try {
+        await axios.delete(`${API_BASE}/tasks/${task.id}`);
+        tasks.value = tasks.value.filter(t => t.id !== task.id);
+        showToast('活动已删除');
+      } catch (error: any) {
+        console.error('删除活动失败:', error);
+        showToast('删除失败', 'error');
+      }
+    }
+  );
+};
+
+export const cancelActivity = (task: any) => {
+  openModal(
+    '取消确认',
+    `确定要取消活动 “${task.title}” 吗？\n这将把活动标记为已取消，但保留记录。`,
+    async () => {
+      try {
+        // 通过修改标题来实现"取消"状态
+        const newTitle = task.title.includes('(已取消)') ? task.title : `(已取消) ${task.title}`;
+        await axios.put(`${API_BASE}/tasks/${task.id}`, {
+          title: newTitle
+        });
+
+        const idx = tasks.value.findIndex(t => t.id === task.id);
+        if (idx !== -1 && tasks.value[idx]) {
+          tasks.value[idx].title = newTitle;
+        }
+        showToast('活动已取消');
+      } catch (error: any) {
+        console.error('取消活动失败:', error);
+        showToast('操作失败', 'error');
+      }
+    }
+  );
 };
 
 export const toggleLike = async (post: Post) => {

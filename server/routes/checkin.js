@@ -7,7 +7,8 @@ import { fileURLToPath } from 'url';
 import CheckinRecord from '../models/CheckinRecord.js';
 import User from '../models/User.js';
 import RecycleStation from '../models/RecycleStation.js';
-import { authenticateToken } from '../middleware/auth.js';
+import TraceRecord from '../models/TraceRecord.js';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -118,11 +119,6 @@ router.post('/', authenticateToken, async (req, res) => {
         const { type, weight, points, imageUrl, stationId, confidence } = req.body;
         const userId = req.user.userId;
 
-        console.log('=== 打卡请求 ===');
-        console.log('req.user:', req.user);
-        console.log('userId:', userId);
-        console.log('请求体:', { type, weight, points, imageUrl, stationId, confidence });
-
         // 基础验证
         if (!type || points === undefined) {
             return res.status(400).json({ success: false, message: '缺少必要参数' });
@@ -158,7 +154,6 @@ router.post('/', authenticateToken, async (req, res) => {
             if (previousCheckinCount === 0) {
                 status = 'pending';
                 reviewReason = '首次回收用户，需人工审核';
-                console.log('首次用户AI打卡，进入审核队列');
             }
 
             // 3. 检查当日AI打卡次数（超过5次需审核）
@@ -177,7 +172,6 @@ router.post('/', authenticateToken, async (req, res) => {
                 if (todayAICount >= 5) {
                     status = 'pending';
                     reviewReason = '当日AI打卡超过5次，需人工审核';
-                    console.log('当日AI打卡超限，进入审核队列');
                 }
             }
 
@@ -185,18 +179,14 @@ router.post('/', authenticateToken, async (req, res) => {
             if (status === 'approved' && aiConfidence < 80) {
                 status = 'pending';
                 reviewReason = `AI置信度为${aiConfidence}%，需人工确认`;
-                console.log('中等置信度，进入审核队列');
             }
 
             // 5. 高置信度（≥80%）-> 直接通过（已是默认状态）
         }
         // 扫码打卡 -> 直接通过（默认状态）
 
-        console.log(`审核分流结果: status=${status}, reason=${reviewReason}`);
-
-        // 1. 处理图片 - 将 base64 保存为文件
+        // 处理图片 - 将 base64 保存为文件
         const savedImageUrl = imageUrl ? saveBase64Image(imageUrl) : '';
-        console.log('图片保存结果:', savedImageUrl ? '成功' : '无图片');
 
         // 2. 创建打卡记录
         const record = await CheckinRecord.create({
@@ -209,8 +199,6 @@ router.post('/', authenticateToken, async (req, res) => {
             imageUrl: savedImageUrl || '',
             status
         });
-
-        console.log('打卡记录创建成功:', record.id, 'status:', status);
 
         let userPoints = 0;
         let taskBonusPoints = 0;
@@ -233,12 +221,55 @@ router.post('/', authenticateToken, async (req, res) => {
                 if (previousApprovedCount === 0) {
                     taskBonusPoints = 50;
                     user.points += taskBonusPoints;
-                    console.log('首次回收奖励任务积分:', taskBonusPoints);
                 }
 
                 await user.save();
                 userPoints = user.points;
-                console.log('用户积分更新成功:', userPoints);
+            }
+
+            // 创建溯源记录
+            try {
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+
+                // 查询今日已有批次数量
+                const traceCount = await TraceRecord.count({
+                    where: {
+                        batchNo: {
+                            [Op.like]: `B-${dateStr}-%`
+                        }
+                    }
+                });
+
+                const seq = String(traceCount + 1).padStart(5, '0');
+                const batchNo = `B-${dateStr}-${seq}`;
+
+                // 生成哈希校验码
+                const hashData = JSON.stringify({
+                    batchNo,
+                    weight: weight || 0,
+                    type,
+                    stationId: stationId || null,
+                    userId,
+                    createdAt: record.createdAt
+                });
+                const hashDigest = crypto.createHash('sha256').update(hashData).digest('hex');
+
+                await TraceRecord.create({
+                    batchNo,
+                    checkinRecordId: record.id,
+                    userId,
+                    stationId: stationId || null,
+                    wasteType: type,
+                    weight: weight || 0,
+                    status: 'completed',
+                    hashDigest
+                });
+
+                console.log('溯源记录创建成功:', batchNo);
+            } catch (traceError) {
+                console.error('创建溯源记录失败:', traceError);
+                // 溯源记录创建失败不影响打卡成功
             }
         }
 
@@ -270,14 +301,8 @@ router.post('/', authenticateToken, async (req, res) => {
 // ==================== 管理员 API ====================
 
 // 获取审核统计数据
-router.get('/admin/audit-stats', authenticateToken, async (req, res) => {
+router.get('/admin/audit-stats', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        // 验证是否是管理员
-        const user = await User.findByPk(req.user.userId);
-        if (!user || (user.role !== 'system_admin')) {
-            return res.status(403).json({ success: false, message: '无权限访问' });
-        }
-
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -313,14 +338,8 @@ router.get('/admin/audit-stats', authenticateToken, async (req, res) => {
 });
 
 // 获取审核记录列表（支持按状态筛选）
-router.get('/admin/records', authenticateToken, async (req, res) => {
+router.get('/admin/records', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        // 验证是否是管理员
-        const user = await User.findByPk(req.user.userId);
-        if (!user || (user.role !== 'system_admin')) {
-            return res.status(403).json({ success: false, message: '无权限访问' });
-        }
-
         const limit = parseInt(req.query.limit) || 50;
         const offset = parseInt(req.query.offset) || 0;
         const status = req.query.status || 'pending'; // 支持 pending, approved, rejected
@@ -378,14 +397,8 @@ router.get('/admin/records', authenticateToken, async (req, res) => {
 });
 
 // 获取待审核记录列表（兼容旧接口）
-router.get('/admin/pending', authenticateToken, async (req, res) => {
+router.get('/admin/pending', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        // 验证是否是管理员
-        const user = await User.findByPk(req.user.userId);
-        if (!user || (user.role !== 'system_admin')) {
-            return res.status(403).json({ success: false, message: '无权限访问' });
-        }
-
         const limit = parseInt(req.query.limit) || 50;
         const offset = parseInt(req.query.offset) || 0;
 
@@ -439,14 +452,8 @@ router.get('/admin/pending', authenticateToken, async (req, res) => {
 });
 
 // 通过审核
-router.post('/admin/approve/:id', authenticateToken, async (req, res) => {
+router.post('/admin/approve/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        // 验证是否是管理员
-        const user = await User.findByPk(req.user.userId);
-        if (!user || (user.role !== 'system_admin')) {
-            return res.status(403).json({ success: false, message: '无权限访问' });
-        }
-
         const recordId = req.params.id;
         const record = await CheckinRecord.findByPk(recordId);
 
@@ -469,6 +476,51 @@ router.post('/admin/approve/:id', authenticateToken, async (req, res) => {
             await targetUser.save();
         }
 
+        // 创建溯源记录
+        try {
+            const today = new Date();
+            const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+
+            // 查询今日已有批次数量
+            const traceCount = await TraceRecord.count({
+                where: {
+                    batchNo: {
+                        [Op.like]: `B-${dateStr}-%`
+                    }
+                }
+            });
+
+            const seq = String(traceCount + 1).padStart(5, '0');
+            const batchNo = `B-${dateStr}-${seq}`;
+
+            // 生成哈希校验码
+            const hashData = JSON.stringify({
+                batchNo,
+                weight: record.weight || 0,
+                type: record.type,
+                stationId: record.stationId || null,
+                userId: record.userId,
+                createdAt: record.createdAt
+            });
+            const hashDigest = crypto.createHash('sha256').update(hashData).digest('hex');
+
+            await TraceRecord.create({
+                batchNo,
+                checkinRecordId: record.id,
+                userId: record.userId,
+                stationId: record.stationId || null,
+                wasteType: record.type,
+                weight: record.weight || 0,
+                status: 'completed',
+                hashDigest
+            });
+
+            console.log('审核通过 - 溯源记录创建成功:', batchNo);
+        } catch (traceError) {
+            console.error('审核通过 - 创建溯源记录失败:', traceError);
+            // 溯源记录创建失败不影响审核通过
+        }
+
         res.json({
             success: true,
             message: '审核通过',
@@ -481,14 +533,8 @@ router.post('/admin/approve/:id', authenticateToken, async (req, res) => {
 });
 
 // 驳回审核
-router.post('/admin/reject/:id', authenticateToken, async (req, res) => {
+router.post('/admin/reject/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        // 验证是否是管理员
-        const user = await User.findByPk(req.user.userId);
-        if (!user || (user.role !== 'system_admin')) {
-            return res.status(403).json({ success: false, message: '无权限访问' });
-        }
-
         const recordId = req.params.id;
         const { reason } = req.body; // 可选的驳回原因
 
@@ -518,14 +564,8 @@ router.post('/admin/reject/:id', authenticateToken, async (req, res) => {
 });
 
 // 获取所有回收站点列表（用于管理员选择）
-router.get('/admin/stations', authenticateToken, async (req, res) => {
+router.get('/admin/stations', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        // 验证是否是管理员
-        const user = await User.findByPk(req.user.userId);
-        if (!user || (user.role !== 'system_admin')) {
-            return res.status(403).json({ success: false, message: '无权限访问' });
-        }
-
         const stations = await RecycleStation.findAll({
             attributes: ['id', 'name', 'address', 'status'],
             order: [['name', 'ASC']]
@@ -542,14 +582,8 @@ router.get('/admin/stations', authenticateToken, async (req, res) => {
 });
 
 // 生成站点二维码数据
-router.post('/admin/generate-qr', authenticateToken, async (req, res) => {
+router.post('/admin/generate-qr', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        // 验证是否是管理员
-        const user = await User.findByPk(req.user.userId);
-        if (!user || (user.role !== 'system_admin')) {
-            return res.status(403).json({ success: false, message: '无权限访问' });
-        }
-
         const { stationId } = req.body;
 
         if (!stationId) {

@@ -4,6 +4,7 @@ import Post from '../models/Post.js';
 import Ranking from '../models/Ranking.js';
 import TaskParticipation from '../models/TaskParticipation.js';
 import User from '../models/User.js';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.get('/tasks', async (req, res) => {
 });
 
 // 创建新任务（管理员）
-router.post('/tasks', async (req, res) => {
+router.post('/tasks', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { title, loc, date, tag } = req.body;
     if (!title || !loc || !date) {
@@ -50,7 +51,7 @@ router.post('/tasks', async (req, res) => {
 });
 
 // 更新任务（管理员）
-router.put('/tasks/:id', async (req, res) => {
+router.put('/tasks/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, loc, date, tag } = req.body;
@@ -73,7 +74,7 @@ router.put('/tasks/:id', async (req, res) => {
 });
 
 // 删除/取消任务（管理员）
-router.delete('/tasks/:id', async (req, res) => {
+router.delete('/tasks/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const task = await Task.findByPk(id);
@@ -335,7 +336,7 @@ router.get('/rankings', async (req, res) => {
 // ==================== 管理员 API ====================
 
 // 禁言用户
-router.post('/admin/mute-user', async (req, res) => {
+router.post('/admin/mute-user', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { username, duration } = req.body;
 
@@ -378,7 +379,7 @@ router.post('/admin/mute-user', async (req, res) => {
 });
 
 // 解除禁言
-router.post('/admin/unmute-user', async (req, res) => {
+router.post('/admin/unmute-user', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { username } = req.body;
 
@@ -401,7 +402,7 @@ router.post('/admin/unmute-user', async (req, res) => {
 });
 
 // 获取任务参与统计
-router.get('/admin/task-stats/:id', async (req, res) => {
+router.get('/admin/task-stats/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 

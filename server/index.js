@@ -9,6 +9,7 @@ import mallRoutes from './routes/mall.js';
 import statsRoutes from './routes/stats.js';
 import checkinRoutes from './routes/checkin.js';
 import classifyRoutes from './routes/classify.js';
+import traceabilityRoutes from './routes/traceability.js';
 
 dotenv.config();
 
@@ -28,6 +29,8 @@ app.use('/api/mall', mallRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/checkin', checkinRoutes);
 app.use('/api/classify', classifyRoutes);
+app.use('/api/trace', traceabilityRoutes);
+
 
 // 根路由测试
 app.get('/', (req, res) => {
@@ -38,9 +41,8 @@ app.get('/', (req, res) => {
 async function startServer() {
   try {
     // force: false 不会删除现有的表，只会创建不存在的表
-    // alter: true 会同步新增的字段（如 mutedUntil）
-    // 注意：生产环境建议使用 migration
-    await sequelize.sync({ alter: true });
+    // 注意：如果需要同步新字段，可临时改为 alter: true
+    await sequelize.sync({ force: false });
     console.log('Database synced successfully.');
 
     app.listen(PORT, () => {
