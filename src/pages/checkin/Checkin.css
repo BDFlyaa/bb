@@ -1,19 +1,18 @@
-/* 变量定义 */
-:root {
-  --primary-color: #00e5ff;
-  --secondary-color: #00b4db;
-  --accent-color: #79f1a4;
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --text-primary: #ffffff;
-  --text-secondary: #aaaaaa;
-}
+/* 变量定义已移至 style.css */
 
 .checkin-view {
-  padding: 20px;
+  padding: 40px;
+  /* 增加整体内边距 */
   min-height: 100%;
   position: relative;
   overflow: hidden;
+}
+
+.volunteer-view-container {
+  max-width: 1200px;
+  /* 限制志愿者视图宽度 */
+  margin: 0 auto;
+  position: relative;
 }
 
 /* --- 背景动效 --- */
@@ -56,75 +55,9 @@
   }
 }
 
-/* --- 通用组件 --- */
-.glass-panel {
-  background: var(--glass-bg);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  position: relative;
-  z-index: 1;
-}
+/* 通用组件已移至 style.css */
 
-.btn-primary {
-  background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
-  border: none;
-  color: #000;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 229, 255, 0.4);
-}
-
-.btn-ghost {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--glass-border);
-  color: var(--text-primary);
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* --- Toast --- */
-.toast-message {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.8);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  padding: 12px 24px;
-  border-radius: 50px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: white;
-  z-index: 9999;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.toast-message.success {
-  border-color: #52c41a;
-}
-
-.toast-message.error {
-  border-color: #ff4d4f;
-}
+/* Toast 已移至 style.css */
 
 /* --- 志愿者 Header --- */
 .volunteer-header {
@@ -402,6 +335,30 @@
   font-size: 1rem;
 }
 
+/* 批次号样式 */
+.batch-no {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 6px;
+  font-size: 0.7rem;
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  margin-right: 10px;
+}
+
+.batch-no:hover {
+  background: rgba(0, 229, 255, 0.2);
+  border-color: rgba(0, 229, 255, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 229, 255, 0.2);
+}
+
 .empty-history {
   text-align: center;
   color: var(--text-secondary);
@@ -611,7 +568,7 @@
 
 /* --- Admin 适配 --- */
 .admin-view-container {
-  max-width: 1200px;
+  max-width: 1300px;
   margin: 0 auto;
 }
 
@@ -766,7 +723,40 @@
 .admin-table th {
   color: var(--text-primary);
   font-weight: 600;
+  background: #112d40;
+  /* Solid background color to prevent transparency issues when scrolling */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  /* Optional: adds a shadow to separate header from content */
+}
+
+.table-scroll-container {
+  max-height: 480px;
+  /* Approximately 6 rows */
+  overflow-y: auto;
+  border-radius: 8px;
+  /* Matches generic border radius */
+}
+
+/* Custom Scrollbar for Webkit */
+.table-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.table-scroll-container::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.3);
+  border-radius: 3px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 229, 255, 0.5);
 }
 
 .admin-table tr:hover td {
@@ -954,7 +944,8 @@
   position: relative;
   /* 海洋蓝渐变背景 */
   background: linear-gradient(135deg, rgba(0, 60, 100, 0.6), rgba(0, 180, 219, 0.2));
-  border-radius: 30px; /* 圆润的鹅卵石形状 */
+  border-radius: 30px;
+  /* 圆润的鹅卵石形状 */
   border: 1px solid rgba(0, 229, 255, 0.4);
   box-shadow: 0 4px 15px rgba(0, 100, 255, 0.1), inset 0 0 20px rgba(0, 229, 255, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -987,7 +978,8 @@
   width: 100%;
   background: transparent;
   border: none;
-  color: #e0f7fa; /* 浅青色文字 */
+  color: #e0f7fa;
+  /* 浅青色文字 */
   padding: 12px 20px;
   appearance: none;
   outline: none;
@@ -999,7 +991,8 @@
 }
 
 .select-wrapper select option {
-  background-color: #002b36; /* 深海背景色 */
+  background-color: #002b36;
+  /* 深海背景色 */
   color: #e0f7fa;
   padding: 12px;
 }
@@ -1070,8 +1063,13 @@
 }
 
 @keyframes wave-btn {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .preview-panel {
@@ -1171,4 +1169,81 @@
 .slide-down-leave-to {
   opacity: 0;
   transform: translate(-50%, -20px);
+}
+
+/* --- Filter Bar --- */
+.filter-bar {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.search-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  display: flex;
+}
+
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 10px 10px 10px 40px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: all 0.3s;
+}
+
+.search-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+}
+
+.filter-wrapper .filter-select {
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 10px 35px 10px 15px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  appearance: none;
+  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'white\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  min-width: 150px;
+}
+
+.filter-wrapper .filter-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.filter-wrapper .filter-select option {
+  background: #1a1a2e;
+  color: var(--text-primary);
+}
+
+.btn-export {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  padding: 10px 20px;
 }

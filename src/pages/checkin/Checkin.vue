@@ -116,7 +116,7 @@
           <div class="section-title">
             <span>
               <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 5px;"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 11 3.8 11 8c0 2.85-1.21 3.8-2 6.38V16h-5z"></path><path d="M16.2 13c.81 2.16 2.3 3.6 3.8 3.6h.4l-.4 3.4a2 2 0 0 1-3.98.2l-.3-2.6c-.6-4.4-3.7-6.2-3.7-9.6 0-2.4 1-4 3-4 3.3 0 4.6 3.6 4.6 6 0 1.2-.4 2.2-1 3.2z"></path></svg>
-              今日足迹
+              历史足迹
             </span>
           </div>
           <div class="history-list">
@@ -128,6 +128,11 @@
               <div class="item-info">
                 <span class="station">{{ item.station }}</span>
                 <span class="time">{{ item.time }} · {{ item.type }}</span>
+              </div>
+              <!-- 批次号显示（右侧） -->
+              <div v-if="item.batchNo && item.status === 'success'" class="batch-no" @click.stop="copyBatchNo(item.batchNo)" title="点击复制批次号">
+                <svg xmlns="http://www.w3.org/2000/svg" width="0.9em" height="0.9em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                {{ item.batchNo }}
               </div>
               <div class="item-points">+{{ item.points }}</div>
             </div>
@@ -242,61 +247,90 @@
               <div class="section-header">
                 <h3>{{ sectionTitle }}</h3>
               </div>
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>志愿者</th>
-                    <th>现场照片</th>
-                    <th>AI 识别结果</th>
-                    <th>提交时间</th>
-                    <th v-if="auditFilter === 'pending'">操作</th>
-                    <th v-else>状态</th>
-                  </tr>
-                </thead>
-                <TransitionGroup name="list" tag="tbody">
-                  <tr v-for="r in auditRecords" :key="r.id">
-                    <td>
-                      <div class="user-cell">
-                        <div class="avatar-circle">{{ r.user.charAt(0) }}</div>
-                        <span class="username">{{ r.user }}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div class="thumb-wrapper" @click="previewImg(r.img)">
-                        <img :src="r.img" class="record-thumb" />
-                        <div class="overlay">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+
+              <!-- 筛选工具栏 -->
+              <div class="filter-bar">
+                <div class="search-wrapper">
+                  <span class="search-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  </span>
+                  <input 
+                    type="text" 
+                    v-model="searchQuery" 
+                    placeholder="搜索用户或站点..." 
+                    class="search-input"
+                  />
+                </div>
+                
+                <div class="filter-wrapper">
+                  <select v-model="selectedMaterial" class="filter-select">
+                    <option v-for="opt in materialOptions" :key="opt" :value="opt">{{ opt }}</option>
+                  </select>
+                </div>
+
+                <button class="btn-ghost btn-export">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  导出 CSV
+                </button>
+              </div>
+
+              <div class="table-scroll-container">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>志愿者</th>
+                      <th>现场照片</th>
+                      <th>AI 识别结果</th>
+                      <th>提交时间</th>
+                      <th v-if="auditFilter === 'pending'">操作</th>
+                      <th v-else>状态</th>
+                    </tr>
+                  </thead>
+                  <TransitionGroup name="list" tag="tbody">
+                    <tr v-for="r in filteredAuditRecords" :key="r.id">
+                      <td>
+                        <div class="user-cell">
+                          <div class="avatar-circle">{{ r.user.charAt(0) }}</div>
+                          <span class="username">{{ r.user }}</span>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span class="ai-tag">{{ r.aiResult }}</span>
-                    </td>
-                    <td class="time-text">{{ r.time }}</td>
-                    <td>
-                      <div v-if="auditFilter === 'pending'" class="action-group">
-                        <button class="btn-icon approve" @click="approve(r)" title="通过">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        </button>
-                        <button class="btn-icon reject" @click="reject(r)" title="驳回">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
-                      </div>
-                      <div v-else class="status-badge" :class="r.status">
-                         {{ r.status === 'approved' ? '已通过' : '已驳回' }}
-                      </div>
-                    </td>
-                  </tr>
-                  <tr v-if="auditRecords.length === 0" key="empty">
-                    <td colspan="5" class="empty-cell">
-                      <div class="empty-state">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: text-bottom;"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-                        当前没有{{ sectionTitle.replace('申请', '') }}记录
-                      </div>
-                    </td>
-                  </tr>
-                </TransitionGroup>
-              </table>
+                      </td>
+                      <td>
+                        <div class="thumb-wrapper" @click="previewImg(r.img)">
+                          <img :src="r.img" class="record-thumb" />
+                          <div class="overlay">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="ai-tag">{{ r.aiResult }}</span>
+                      </td>
+                      <td class="time-text">{{ r.time }}</td>
+                      <td>
+                        <div v-if="auditFilter === 'pending'" class="action-group">
+                          <button class="btn-icon approve" @click="approve(r)" title="通过">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          </button>
+                          <button class="btn-icon reject" @click="reject(r)" title="驳回">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                          </button>
+                        </div>
+                        <div v-else class="status-badge" :class="r.status">
+                           {{ r.status === 'approved' ? '已通过' : '已驳回' }}
+                        </div>
+                      </td>
+                    </tr>
+                    <tr v-if="filteredAuditRecords.length === 0" key="empty">
+                      <td colspan="5" class="empty-cell">
+                        <div class="empty-state">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: text-bottom;"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                          当前没有{{ sectionTitle.replace('申请', '') }}记录
+                        </div>
+                      </td>
+                    </tr>
+                  </TransitionGroup>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -405,6 +439,7 @@ const {
     cancelScan,
     confirmCheckin,
     recognitionResult,
+    copyBatchNo,
     // 管理员
   activeTab,
   selectedStation,
@@ -420,7 +455,12 @@ const {
   approve,
   reject,
   previewImg,
-  closePreview
+  closePreview,
+  // 搜索与筛选
+  searchQuery,
+  selectedMaterial,
+  materialOptions,
+  filteredAuditRecords
 } = useCheckin();
 </script>
 

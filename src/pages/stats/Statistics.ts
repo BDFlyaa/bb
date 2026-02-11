@@ -75,11 +75,14 @@ const fetchData = async () => {
 
         const stats = await getUserStats(store.user.id);
         userStats.value = stats;
+        // 同步 store 的积分（包含任务自动发放的积分）
+        store.setPoints(stats.points);
       } else {
         await store.fetchUserProfile();
         if (store.user && store.user.id) {
           const stats = await getUserStats(store.user.id);
           userStats.value = stats;
+          store.setPoints(stats.points);
         }
       }
     }

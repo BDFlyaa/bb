@@ -82,13 +82,13 @@ const closeModal = () => {
 };
 
 export {
-    store,
-    showModal,
-    showVideoModal,
-    activeArticle,
-    activeVideo,
-    oceanStats,
-    openArticle,
-    openVideo,
-    closeModal
+  store,
+  showModal,
+  showVideoModal,
+  activeArticle,
+  activeVideo,
+  oceanStats,
+  openArticle,
+  openVideo,
+  closeModal
 };

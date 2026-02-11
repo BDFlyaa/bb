@@ -261,9 +261,10 @@ export const publishActivity = async () => {
 
   isPublishingActivity.value = true;
   try {
+    const authHeaders = { headers: { Authorization: `Bearer ${store.token}` } };
     if (editingTaskId.value) {
       // 编辑模式
-      const res = await axios.put(`${API_BASE}/tasks/${editingTaskId.value}`, newActivity.value);
+      const res = await axios.put(`${API_BASE}/tasks/${editingTaskId.value}`, newActivity.value, authHeaders);
       // 更新列表中的数据
       const index = tasks.value.findIndex(t => t.id === editingTaskId.value);
       if (index !== -1) {
@@ -272,7 +273,7 @@ export const publishActivity = async () => {
       showToast('活动修改成功！');
     } else {
       // 新增模式
-      const res = await axios.post(`${API_BASE}/tasks`, newActivity.value);
+      const res = await axios.post(`${API_BASE}/tasks`, newActivity.value, authHeaders);
       tasks.value.unshift({ ...res.data, isJoined: false });
       showToast('活动发布成功！');
     }
@@ -291,7 +292,9 @@ export const deleteActivity = (task: any) => {
     `确定要彻底删除活动 “${task.title}” 吗？此操作不可恢复。`,
     async () => {
       try {
-        await axios.delete(`${API_BASE}/tasks/${task.id}`);
+        await axios.delete(`${API_BASE}/tasks/${task.id}`, {
+          headers: { Authorization: `Bearer ${store.token}` }
+        });
         tasks.value = tasks.value.filter(t => t.id !== task.id);
         showToast('活动已删除');
       } catch (error: any) {
@@ -312,6 +315,8 @@ export const cancelActivity = (task: any) => {
         const newTitle = task.title.includes('(已取消)') ? task.title : `(已取消) ${task.title}`;
         await axios.put(`${API_BASE}/tasks/${task.id}`, {
           title: newTitle
+        }, {
+          headers: { Authorization: `Bearer ${store.token}` }
         });
 
         const idx = tasks.value.findIndex(t => t.id === task.id);

@@ -66,4 +66,7 @@ const CheckinRecord = sequelize.define('CheckinRecord', {
 CheckinRecord.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 CheckinRecord.belongsTo(RecycleStation, { foreignKey: 'stationId', as: 'station' });
 
+// 延迟加载 TraceRecord 关联，避免循环依赖
+// 在 routes/checkin.js 中动态设置
+
 export default CheckinRecord;

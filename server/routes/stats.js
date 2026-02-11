@@ -1,5 +1,6 @@
 import express from 'express';
 import { Op, fn, col, literal } from 'sequelize';
+import sequelize from '../db.js';
 import CheckinRecord from '../models/CheckinRecord.js';
 import User from '../models/User.js';
 import RecycleStation from '../models/RecycleStation.js';
@@ -237,7 +238,7 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
 
         // 获取用户积分
         const user = await User.findByPk(userId, {
-            attributes: ['points', 'username']
+            attributes: ['id', 'points', 'username']
         });
 
         // 回收次数
@@ -270,6 +271,65 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
         });
         const hasParticipatedActivity = !!activityParticipation;
 
+        // 任务奖励映射
+        const taskRewardsMap = {
+            1: { points: 50, desc: '完成一次塑料瓶回收' },
+            2: { points: 200, desc: '参与海滩清洁活动' },
+            3: { points: 100, desc: '邀请一位好友加入' }
+        };
+
+        // 自动检测是否满足任务条件
+        const autoDetected = {
+            1: checkinCount > 0,
+            2: hasParticipatedActivity
+        };
+
+        // 对于自动检测完成但尚未创建 TaskCompletion 记录的任务，自动发放积分
+        // 使用事务确保积分和任务记录的一致性
+        let pointsAwarded = 0;
+        
+        // 只有在有新任务完成时才开启事务
+        const newTasks = Object.entries(autoDetected)
+            .filter(([taskIdStr, detected]) => {
+                const taskId = parseInt(taskIdStr);
+                return detected && !completedTaskIds.includes(taskId);
+            });
+
+        if (newTasks.length > 0) {
+            const transaction = await sequelize.transaction();
+            try {
+                for (const [taskIdStr, _] of newTasks) {
+                    const taskId = parseInt(taskIdStr);
+                    const reward = taskRewardsMap[taskId];
+                    
+                    await TaskCompletion.create({
+                        userId,
+                        taskId,
+                        pointsAwarded: reward.points,
+                        completedAt: new Date()
+                    }, { transaction });
+                    
+                    pointsAwarded += reward.points;
+                    completedTaskIds.push(taskId);
+                }
+
+                if (pointsAwarded > 0 && user) {
+                    user.points = (user.points || 0) + pointsAwarded;
+                    await user.save({ transaction });
+                }
+                
+                await transaction.commit();
+            } catch (err) {
+                await transaction.rollback();
+                console.error('自动发放任务积分失败:', err);
+                // 事务回滚，积分和记录都不会保存，下次请求会重试
+                pointsAwarded = 0; // 重置以便前端显示正确（或者不重置，显示旧值）
+            }
+        }
+
+        // 更新 points 变量以反映最新积分
+        const updatedPoints = user?.points || points;
+
         // Tasks status
         const tasks = [
             {
@@ -292,7 +352,12 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
             }
         ];
 
-        // 计算勋章解锁状态
+        // 计算勋章解锁状态（使用最新积分）
+        const finalPoints = updatedPoints;
+        const finalLevel = Math.floor(finalPoints / 500) + 1;
+        const finalNextLevelPoints = finalLevel * 500;
+        const finalLevelProgress = ((finalPoints % 500) / 500 * 100).toFixed(0);
+
         const medals = [
             {
                 id: 'beginner',
@@ -320,19 +385,19 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
                 name: '环保大师',
                 icon: '环保大师.png',
                 description: '环保领域的佼佼者',
-                unlocked: points >= 1000
+                unlocked: finalPoints >= 1000
             }
         ];
 
         res.json({
             username: user?.username || '用户',
             totalWeight: totalWeight.toFixed(1),
-            points,
+            points: finalPoints,
             checkinCount,
             savedAnimals,
-            level,
-            levelProgress: parseInt(levelProgress),
-            pointsToNextLevel: nextLevelPoints - points,
+            level: finalLevel,
+            levelProgress: parseInt(finalLevelProgress),
+            pointsToNextLevel: finalNextLevelPoints - finalPoints,
             tasks,
             medals
         });

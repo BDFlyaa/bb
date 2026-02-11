@@ -48,7 +48,8 @@ export function useCheckin() {
           type: item.type,
           points: item.points,
           time: new Date(item.createdAt).toLocaleString(),
-          status: item.status === 'approved' ? 'success' : 'pending'
+          status: item.status === 'approved' ? 'success' : 'pending',
+          batchNo: item.batchNo || null // 添加批次号
         }));
       }
     } catch (error) {
@@ -405,6 +406,31 @@ export function useCheckin() {
   // 统计数据 (使用真实数据)
   const auditStats = computed(() => auditStatsData.value);
 
+  // --- 搜索与筛选逻辑 ---
+  const searchQuery = ref('');
+  const selectedMaterial = ref('所有材料');
+  const materialOptions = ref(['所有材料', '可回收垃圾', '有害垃圾', '厨余垃圾', '其他垃圾']);
+
+  // 过滤后的审核记录
+  const filteredAuditRecords = computed(() => {
+    return auditRecords.value.filter(record => {
+      // 1. 搜索过滤 (匹配用户名或站点名)
+      const query = searchQuery.value.toLowerCase().trim();
+      const matchSearch = query
+        ? (record.user?.toLowerCase().includes(query) || record.stationName?.toLowerCase().includes(query))
+        : true;
+
+      // 2. 材料过滤
+      // 假设 aiResult 格式为 "可回收垃圾 - 塑料瓶 (98%)" 或类似包含分类的字符串
+      // 或者 record.aiResult 直接就是分类名称，这里做模糊匹配
+      const matchMaterial = selectedMaterial.value === '所有材料'
+        ? true
+        : record.aiResult?.includes(selectedMaterial.value);
+
+      return matchSearch && matchMaterial;
+    });
+  });
+
   // 图片预览模态框
   const previewImageState = ref({
     show: false,
@@ -457,6 +483,17 @@ export function useCheckin() {
     previewImageState.value.show = false;
   };
 
+  // 复制批次号到剪贴板
+  const copyBatchNo = async (batchNo: string) => {
+    try {
+      await navigator.clipboard.writeText(batchNo);
+      showToast(`批次号 ${batchNo} 已复制，可前往溯源页面查询`, 'success');
+    } catch (error) {
+      console.error('复制失败:', error);
+      showToast('复制失败，请手动复制', 'error');
+    }
+  };
+
   return {
     isAdmin,
     // 通用
@@ -493,6 +530,13 @@ export function useCheckin() {
     previewImg,
     closePreview,
     isLoadingAudit,
-    loadAuditData
+    loadAuditData,
+    // 搜索与筛选
+    searchQuery,
+    selectedMaterial,
+    materialOptions,
+    filteredAuditRecords,
+    // 批次号复制
+    copyBatchNo
   };
 }

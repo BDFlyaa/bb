@@ -87,7 +87,7 @@ router.get('/me', authenticateToken, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: '用户不存在' });
     }
-    
+
     res.json({
       id: user.id,
       username: user.username,

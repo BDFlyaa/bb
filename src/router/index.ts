@@ -46,7 +46,7 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const publicPages = ['/', '/login', '/register'];
   const authRequired = !publicPages.includes(to.path);
-  
+
   if (authRequired && !store.isLoggedIn) {
     next('/login');
   } else {

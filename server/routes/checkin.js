@@ -92,20 +92,39 @@ router.get('/history', authenticateToken, async (req, res) => {
         const userId = req.user.userId;
         const limit = parseInt(req.query.limit) || 20;
 
+        // 动态设置 CheckinRecord 和 TraceRecord 的关联
+        if (!CheckinRecord.associations.traceRecord) {
+            CheckinRecord.hasOne(TraceRecord, { foreignKey: 'checkinRecordId', as: 'traceRecord' });
+        }
+
         const history = await CheckinRecord.findAll({
             where: { userId },
-            include: [{
-                model: RecycleStation,
-                as: 'station',
-                attributes: ['name']
-            }],
+            include: [
+                {
+                    model: RecycleStation,
+                    as: 'station',
+                    attributes: ['name']
+                },
+                {
+                    model: TraceRecord,
+                    as: 'traceRecord',
+                    attributes: ['batchNo'],
+                    required: false // 左连接，允许没有溯源记录的打卡记录
+                }
+            ],
             order: [['createdAt', 'DESC']],
             limit
         });
 
+        // 格式化返回数据，将 batchNo 提取到顶层
+        const formattedHistory = history.map(record => ({
+            ...record.toJSON(),
+            batchNo: record.traceRecord?.batchNo || null
+        }));
+
         res.json({
             success: true,
-            data: history
+            data: formattedHistory
         });
     } catch (error) {
         console.error('获取历史失败:', error);
@@ -137,26 +156,35 @@ router.post('/', authenticateToken, async (req, res) => {
         if (isAICheckin) {
             const aiConfidence = confidence || 0;
 
-            // 1. 置信度过低（<50%）-> 拒绝，提示重拍
-            if (aiConfidence < 50) {
+            // 1. 置信度过低（<25%）-> 拒绝，提示重拍
+            if (aiConfidence < 25) {
                 return res.status(400).json({
                     success: false,
                     status: 'rejected',
-                    message: '识别置信度过低，请重新拍照'
+                    message: '识别置信度过低，请重新拍摄更清晰的照片'
                 });
             }
 
-            // 2. 检查是否是首次回收用户
-            const previousCheckinCount = await CheckinRecord.count({
-                where: { userId, status: 'approved' }
-            });
-
-            if (previousCheckinCount === 0) {
+            // 2. 中低置信度（25-69%）-> 需人工审核
+            if (aiConfidence < 70) {
                 status = 'pending';
-                reviewReason = '首次回收用户，需人工审核';
+                reviewReason = `AI置信度为${aiConfidence}%，需人工确认`;
             }
 
-            // 3. 检查当日AI打卡次数（超过5次需审核）
+            // 3. 高置信度（≥70%）但需检查其他条件
+            if (status === 'approved') {
+                // 检查是否是首次回收用户
+                const previousCheckinCount = await CheckinRecord.count({
+                    where: { userId, status: 'approved' }
+                });
+
+                if (previousCheckinCount === 0) {
+                    status = 'pending';
+                    reviewReason = '首次回收用户，需人工审核';
+                }
+            }
+
+            // 4. 检查当日AI打卡次数（超过5次需审核）
             if (status === 'approved') {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -175,13 +203,7 @@ router.post('/', authenticateToken, async (req, res) => {
                 }
             }
 
-            // 4. 中等置信度（50-79%）-> 需审核
-            if (status === 'approved' && aiConfidence < 80) {
-                status = 'pending';
-                reviewReason = `AI置信度为${aiConfidence}%，需人工确认`;
-            }
-
-            // 5. 高置信度（≥80%）-> 直接通过（已是默认状态）
+            // 5. 高置信度（≥70%）且无其他限制 -> 直接通过（已是默认状态）
         }
         // 扫码打卡 -> 直接通过（默认状态）
 

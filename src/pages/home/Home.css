@@ -194,7 +194,8 @@
 .data-value {
   font-size: 2.5rem;
   font-weight: 700;
-  font-family: 'Courier New', Courier, monospace; /* 模拟机械数字感 */
+  font-family: 'Courier New', Courier, monospace;
+  /* 模拟机械数字感 */
   color: #00f2fe;
   text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
 }
@@ -251,25 +252,52 @@
   font-size: 1.5rem;
 }
 
-.f1 { top: 40%; left: -50px; animation: swimRight 20s linear infinite; animation-delay: 2s; }
-.f2 { top: 60%; left: -50px; animation: swimRight 25s linear infinite; animation-delay: 10s; }
-.f3 { bottom: 30%; right: -50px; animation: swimLeft 22s linear infinite; animation-delay: 15s; }
+.f1 {
+  top: 40%;
+  left: -50px;
+  animation: swimRight 20s linear infinite;
+  animation-delay: 2s;
+}
+
+.f2 {
+  top: 60%;
+  left: -50px;
+  animation: swimRight 25s linear infinite;
+  animation-delay: 10s;
+}
+
+.f3 {
+  bottom: 30%;
+  right: -50px;
+  animation: swimLeft 22s linear infinite;
+  animation-delay: 15s;
+}
 
 @keyframes swimRight {
-  from { transform: translateX(-200px) rotate(5deg); }
-  to { transform: translateX(110vw) rotate(5deg); }
+  from {
+    transform: translateX(-200px) rotate(5deg);
+  }
+
+  to {
+    transform: translateX(110vw) rotate(5deg);
+  }
 }
 
 @keyframes swimLeft {
-  from { transform: translateX(200px) scaleX(-1) rotate(5deg); }
-  to { transform: translateX(-110vw) scaleX(-1) rotate(5deg); }
+  from {
+    transform: translateX(200px) scaleX(-1) rotate(5deg);
+  }
+
+  to {
+    transform: translateX(-110vw) scaleX(-1) rotate(5deg);
+  }
 }
 
 /* 科普内容区 */
 .science-content {
   position: relative;
   z-index: 1;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 80px 20px;
 }
@@ -319,8 +347,11 @@
 .wiki-card::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.8));
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, transparent 40%, rgba(0, 0, 0, 0.8));
   z-index: 1;
 }
 
@@ -420,8 +451,15 @@
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 /* 页脚 */
@@ -440,7 +478,10 @@
 /* 弹窗样式 */
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.8);
   display: flex;
   justify-content: center;
@@ -506,7 +547,8 @@
 
 .video-container {
   position: relative;
-  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  padding-bottom: 56.25%;
+  /* 16:9 aspect ratio */
   height: 0;
   overflow: hidden;
 }
@@ -545,8 +587,15 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 响应式调整 */
@@ -554,18 +603,18 @@
   .main-title {
     font-size: 2.5rem;
   }
-  
+
   .data-dashboard {
     flex-direction: column;
     gap: 20px;
   }
-  
+
   .data-divider {
     width: 50px;
     height: 1px;
     background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
   }
-  
+
   .hero-section {
     padding-top: 120px;
   }

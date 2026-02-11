@@ -19,17 +19,27 @@
         <!-- 左侧：任务列表 -->
         <div class="task-column">
           <div class="column-header">
+            <h3>活跃任务</h3>
+            <a href="#" class="view-all">查看全部</a>
           </div>
           <div class="task-list">
             <div v-for="task in logic.tasks.value" :key="task.id" class="glass-panel task-card">
-              <div class="task-header">
-                <span class="task-tag">官方任务</span>
-                <span class="task-date">{{ task.date }}</span>
+              <div class="task-image-placeholder">
+                <img src="https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fG9jZWFufGVufDB8fDB8fHww" alt="Task Cover">
+                <span class="task-level-badge">初级</span>
               </div>
-              <h4>{{ task.title }}</h4>
-              <p class="task-loc">📍 {{ task.loc }}</p>
-              <button v-if="!task.isJoined" @click="logic.joinTask(task)" class="btn-primary full-width">报名参加</button>
-              <button v-else @click="logic.leaveTask(task)" class="btn-ghost full-width">已参加 (退出)</button>
+              <div class="task-content">
+                <h4>{{ task.title }}</h4>
+                <div class="task-meta">
+                  <span class="task-date">{{ task.date }}</span>
+                  <span class="task-loc">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> 
+                    {{ task.loc }}
+                  </span>
+                </div>
+                <button v-if="!task.isJoined" @click="logic.joinTask(task)" class="btn-primary full-width">报名参加</button>
+                <button v-else @click="logic.leaveTask(task)" class="btn-ghost full-width">已参加 (退出)</button>
+              </div>
             </div>
           </div>
         </div>
@@ -38,11 +48,16 @@
         <div class="feed-column">
           <!-- 发布卡片 -->
           <div class="glass-panel publish-card">
-            <textarea 
-              v-model="logic.newPostContent.value" 
-              placeholder="分享你的环保瞬间..."
-              :disabled="logic.isPublishing.value"
-            ></textarea>
+            <div class="publish-input-area">
+              <div class="user-avatar-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </div>
+              <textarea 
+                v-model="logic.newPostContent.value" 
+                placeholder="分享你的最新环保成就..."
+                :disabled="logic.isPublishing.value"
+              ></textarea>
+            </div>
             
             <div v-if="logic.selectedImage.value" class="image-preview-container">
               <img :src="logic.selectedImage.value" />
@@ -51,17 +66,26 @@
 
             <div class="publish-footer">
               <div class="publish-options">
-                <label class="opt-icon" title="上传图片">
+                <label class="opt-btn" title="上传图片">
                   <input type="file" hidden @change="logic.handleImageSelect" accept="image/*" />
-                  📷 <span style="font-size: 0.8rem; margin-left: 5px;">图片</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                  <span>照片</span>
                 </label>
+                <button class="opt-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                  <span>视频</span>
+                </button>
+                <button class="opt-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  <span>位置</span>
+                </button>
               </div>
               <button 
                 class="btn-primary" 
                 @click="logic.publishPost" 
                 :disabled="logic.isPublishing.value || (!logic.newPostContent.value.trim() && !logic.selectedImage.value)"
               >
-                {{ logic.isPublishing.value ? '发布中...' : '发布动态' }}
+                {{ logic.isPublishing.value ? '发布中...' : '发布' }}
               </button>
             </div>
           </div>
@@ -70,62 +94,67 @@
           <div class="feed-list">
             <div v-for="post in logic.feed.value" :key="post.id" class="glass-panel feed-item">
               <div class="feed-header">
-                <div class="user-info" style="display: flex; gap: 10px; align-items: center;">
-                  <div class="avatar" style="font-size: 1.5rem;">👤</div>
+                <div class="user-info">
+                  <div class="avatar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  </div>
                   <div class="meta">
-                    <div class="username" style="font-weight: bold; color: #00b4db;">{{ post.user }}</div>
-                    <div class="time-ago">{{ logic.formatTime(post.createdAt) }}</div>
+                    <div class="username">{{ post.user }}</div>
+                    <div class="sub-meta">
+                      <span class="time-ago">{{ logic.formatTime(post.createdAt) }}</span>
+                      <span class="location-tag" v-if="post.user === 'Sarah Jenkins'">• Santa Monica, CA</span>
+                    </div>
                   </div>
                 </div>
-                <!-- 如果是自己的动态，可以删除 -->
-                <button v-if="post.user === store.user.name" class="btn-more" @click="logic.deletePost(post.id)">删除</button>
+                <button v-if="post.user === store.user.name" class="btn-more" @click="logic.deletePost(post.id)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                </button>
               </div>
 
               <div class="feed-content">{{ post.content }}</div>
               
-              <div v-if="post.image" class="feed-image" @click="logic.openImagePreview(post.image)">
-                <img :src="post.image" loading="lazy" />
+              <div v-if="post.image" class="feed-image-container">
+                <img :src="post.image" loading="lazy" @click="logic.openImagePreview(post.image)" />
               </div>
 
               <div class="feed-actions">
-                <div 
-                  class="action-item" 
-                  :class="{ liked: post.isLiked }"
-                  @click="logic.toggleLike(post)"
-                >
-                  {{ post.isLiked ? '❤️' : '🤍' }} {{ post.likes }}
+                <div class="action-item" :class="{ liked: post.isLiked }" @click="logic.toggleLike(post)">
+                  <span class="icon">
+                    <svg v-if="post.isLiked" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                  </span>
+                  <span class="count">{{ post.likes }}</span>
                 </div>
                 <div class="action-item" @click="logic.toggleComments(post)">
-                  💬 {{ post.comments?.length || 0 }}
+                  <span class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                  </span>
+                  <span class="count">{{ post.comments?.length || 0 }}</span>
                 </div>
-                <div class="action-item">🔗 分享</div>
+                <div class="action-item">
+                  <span class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                  </span>
+                </div>
               </div>
 
               <!-- 评论区 -->
               <div v-if="post.showComments" class="comment-section">
                 <div class="comment-list">
                   <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
-                    <div class="comment-header">
-                      <span class="comment-user">{{ comment.user }}</span>
-                      <span class="comment-time">{{ logic.formatTime(comment.createdAt) }}</span>
-                    </div>
-                    <p class="comment-content">{{ comment.content }}</p>
+                    <span class="comment-user">{{ comment.user }}</span>:
+                    <span class="comment-content">{{ comment.content }}</span>
                   </div>
-                  <div v-if="!post.comments?.length" class="no-comments">暂无评论，快来抢沙发吧~</div>
                 </div>
                 
                 <div class="comment-input-area">
                   <input 
                     v-model="post.newCommentContent" 
                     type="text" 
-                    placeholder="说点什么吧..." 
+                    placeholder="写下你的评论..." 
                     @keyup.enter="logic.addComment(post)"
                   />
-                  <button 
-                    class="btn-primary btn-sm" 
-                    @click="logic.addComment(post)"
-                    :disabled="!post.newCommentContent?.trim()"
-                  >发送</button>
+                  <button class="btn-text" @click="logic.addComment(post)">发送</button>
                 </div>
               </div>
             </div>
@@ -134,17 +163,39 @@
 
         <!-- 右侧：排行榜 -->
         <div class="rank-column">
-          <div class="glass-panel sidebar-card">
-            <h3 style="margin-bottom: 20px; color: #00e5ff;">🏆 贡献排行榜</h3>
-            <div class="rank-list" style="display: flex; flex-direction: column; gap: 15px;">
-              <div v-for="(rank, index) in logic.rankings.value" :key="rank.id" class="rank-item" style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                <div class="rank-num" :style="{ color: index < 3 ? '#00e5ff' : '#888', fontWeight: 'bold' }">{{ index + 1 }}</div>
-                <div class="rank-info" style="flex: 1;">
-                  <div class="name">{{ rank.name }}</div>
-                  <div class="weight" style="font-size: 0.8rem; opacity: 0.6;">累计回收: {{ rank.weight }}kg</div>
-                </div>
+          <div class="glass-panel sidebar-card rank-card">
+            <div class="card-header">
+              <h3>回收达人榜</h3>
+              <div class="rank-tabs">
+                <span class="active">周榜</span>
+                <span>总榜</span>
               </div>
             </div>
+            
+            <div class="rank-list">
+              <div v-for="(rank, index) in logic.rankings.value" :key="rank.id" class="rank-item">
+                <div class="rank-num" :class="`top-${index + 1}`">{{ index + 1 }}</div>
+                <div class="rank-avatar">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </div>
+                <div class="rank-info">
+                  <div class="name">{{ rank.name }}</div>
+                  <div class="role">志愿者</div>
+                </div>
+                <div class="rank-score">{{ rank.weight }}kg</div>
+              </div>
+            </div>
+            
+            <div class="rank-footer">
+              <a href="#">查看完整排行榜</a>
+            </div>
+          </div>
+
+          <!-- 捐赠卡片 -->
+          <div class="glass-panel sidebar-card donate-card">
+            <h3>捐助海洋清理行动</h3>
+            <p>支持我们部署先进机械设备，清理太平洋垃圾带。</p>
+            <button class="btn-white full-width">立即捐赠</button>
           </div>
         </div>
       </div>
@@ -183,7 +234,7 @@
               <span class="time">{{ logic.formatTime(post.createdAt) }}</span>
             </div>
             <p class="content">{{ post.content }}</p>
-            <div v-if="post.image" class="feed-image" style="max-width: 400px;">
+            <div v-if="post.image" class="feed-image-container">
               <img :src="post.image" @click="logic.openImagePreview(post.image)" />
             </div>
             <div class="mod-footer">
@@ -217,7 +268,7 @@
             <tbody>
               <tr v-for="task in logic.tasks.value" :key="task.id">
                 <td style="font-weight: 500;">{{ task.title }}</td>
-                <td><span style="opacity: 0.7;">📍</span> {{ task.loc }}</td>
+                <td><span style="opacity: 0.7; display: inline-flex; vertical-align: middle; margin-right: 4px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></span>{{ task.loc }}</td>
                 <td>{{ task.date }}</td>
                 <td><span class="status-tag success">进行中</span></td>
                 <td>
@@ -350,46 +401,11 @@ const muteUser = (user: string) => alert(`用户 ${user} 已被禁言 24 小时`
   border-color: #00b4db;
 }
 
-/* Toast 样式 */
-.toast-message {
-  position: fixed;
-  top: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 30px;
-  border-radius: 30px;
-  z-index: 9999;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-  font-weight: bold;
-}
+/* Toast styles removed */
+/* Full width and btn-sm removed */
+/* Feed image fix preserved - removed as now using global container */
 
-.toast-message.success { background: #52c41a; color: white; }
-.toast-message.error { background: #ff4d4f; color: white; }
-.toast-message.info { background: #1890ff; color: white; }
-
-.fade-enter-active, .fade-leave-active { transition: opacity 0.5s, transform 0.5s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; transform: translate(-50%, -20px); }
-
-.full-width { width: 100%; }
-.btn-sm { padding: 5px 15px; font-size: 0.85rem; }
-
-/* 修复 feed-image 在 admin 视图的展示 */
-.mod-item .feed-image {
-  cursor: default;
-}
-
-.btn-more {
-  background: none;
-  border: none;
-  color: #ff4757;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-
-.btn-more:hover {
-  text-decoration: underline;
-}
+/* btn-more removed (global) */
 
 /* 表单样式 */
 .form-body {
@@ -399,27 +415,5 @@ const muteUser = (user: string) => alert(`用户 ${user} 已被禁言 24 小时`
   padding: 10px 0;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-  color: #cceeff;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  color: white;
-  outline: none;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  border-color: #00b4db;
-  background: rgba(255, 255, 255, 0.15);
-}
+/* form-group styles removed (global) */
 </style>

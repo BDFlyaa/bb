@@ -4,62 +4,82 @@
     <div v-if="!isAdmin">
       <div class="header-section">
         <div class="title-area">
-          <h2>
-            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 8px;"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
-            积分商城
-          </h2>
+          <div class="brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="gift-icon"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+            <h1>积分商城</h1>
+          </div>
           <p>用您的环保贡献换取精美礼品</p>
         </div>
-        <div class="user-status glass-panel">
+        <div class="user-points-pill">
           <span class="label">我的积分</span>
-          <span class="value">
-            {{ store.user.points || 0 }} 
-            <svg xmlns="http://www.w3.org/2000/svg" width="0.8em" height="0.8em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-left: 2px;"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><line x1="12" y1="18" x2="12" y2="2"></line></svg>
-          </span>
+          <span class="value">{{ store.user.points || 0 }}</span>
+          <span class="coin-icon">🪙</span>
         </div>
       </div>
 
-      <div class="filter-bar">
-        <button 
-          :class="['filter-btn', { active: activeFilter === 'all' }]"
-          @click="activeFilter = 'all'"
-        >全部礼品</button>
-        <button 
-          :class="['filter-btn', { active: activeFilter === 'daily' }]"
-          @click="activeFilter = 'daily'"
-        >生活用品</button>
-        <button 
-          :class="['filter-btn', { active: activeFilter === 'clothing' }]"
-          @click="activeFilter = 'clothing'"
-        >环保服饰</button>
-        <button class="filter-btn" @click="showMyOrders = true">兑换记录</button>
+      <!-- Hero Section -->
+      <div class="hero-section glass-panel">
+        <div class="hero-content">
+          <div class="hero-badge">本月推荐</div>
+          <h2>参与环保行动<br>兑换心仪好礼</h2>
+          <p>每一次回收，都是对地球的一份爱。累积积分，让环保更有价值。</p>
+          <div class="hero-actions">
+            <button class="btn-primary" @click="activeFilter = 'all'">浏览全部</button>
+            <button class="btn-outline" @click="showMyOrders = true">兑换记录</button>
+          </div>
+        </div>
+        <div class="hero-image">
+           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="hero-icon"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+        </div>
+      </div>
+
+      <div class="browse-section">
+        <div class="browse-header">
+          <h3>浏览奖励</h3>
+          <div class="sort-controls">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+          </div>
+        </div>
+        
+        <div class="filter-bar">
+          <button 
+            :class="['filter-pill', { active: activeFilter === 'all' }]"
+            @click="activeFilter = 'all'"
+          >全部</button>
+          <button 
+            :class="['filter-pill', { active: activeFilter === 'daily' }]"
+            @click="activeFilter = 'daily'"
+          >日用品</button>
+          <button 
+            :class="['filter-pill', { active: activeFilter === 'clothing' }]"
+            @click="activeFilter = 'clothing'"
+          >服饰</button>
+        </div>
       </div>
 
       <div class="products-grid">
         <div class="product-card glass-panel" v-for="item in filteredItems" :key="item.id">
-          <div class="product-icon">
-            <img v-if="item.icon && (item.icon.startsWith('data:image') || item.icon.startsWith('http'))" :src="item.icon" alt="商品图片">
-            <span v-else>{{ item.icon }}</span>
+          <div class="card-image-wrapper">
+             <div class="stock-badge" v-if="item.inventory < 10">仅剩 {{ item.inventory }}</div>
+             <img v-if="item.icon && (item.icon.startsWith('data:image') || item.icon.startsWith('http'))" :src="item.icon" alt="商品图片">
+             <div v-else class="placeholder-icon">{{ item.icon }}</div>
           </div>
-          <div class="product-info">
-            <h4>{{ item.name }}</h4>
-            <p class="desc">{{ item.desc }}</p>
-            <div class="stock-info" v-if="item.inventory < 10">
-              仅剩 {{ item.inventory }} 件
-            </div>
-            <div class="price-row">
-              <span class="points">
-                {{ item.points }} 
-                <svg xmlns="http://www.w3.org/2000/svg" width="0.8em" height="0.8em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-left: 2px;"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><line x1="12" y1="18" x2="12" y2="2"></line></svg>
-              </span>
-              <button 
-                class="btn-primary btn-sm" 
-                :disabled="item.inventory <= 0 || (store.user.points || 0) < item.points"
-                @click="redeem(item)"
-              >
-                {{ item.inventory <= 0 ? '已售罄' : ((store.user.points || 0) < item.points ? '积分不足' : '立即兑换') }}
-              </button>
-            </div>
+          <div class="card-content">
+            <div class="category-tag">{{ item.category === 'daily' ? '生活用品' : (item.category === 'clothing' ? '环保服饰' : '其他') }}</div>
+            <h3 class="product-title">{{ item.name }}</h3>
+            <!-- Assuming price is needed but hidden in the user's image snippet, I'll add it subtly or keep it hidden if they want exact match. 
+                 The user said "optimize based on layout", usually means functionality remains. 
+                 I'll add the price row at the bottom. -->
+             <div class="card-footer">
+                <span class="points-cost">{{ item.points }} 积分</span>
+                <button class="redeem-btn-small" 
+                  :disabled="item.inventory <= 0 || (store.user.points || 0) < item.points"
+                  @click="redeem(item)"
+                >
+                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                </button>
+             </div>
           </div>
         </div>
       </div>
