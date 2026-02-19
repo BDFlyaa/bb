@@ -1,0 +1,477 @@
+/* ============================================
+   ProfileEdit.css — Premium Glassmorphism
+   ============================================ */
+
+/* Page Container */
+.profile-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px 20px 60px;
+}
+
+/* Page Header */
+.page-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+}
+
+.page-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 120px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary-color, #00e5ff), transparent);
+}
+
+.page-title.gradient-text {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #00e5ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 1px;
+}
+
+.page-subtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+/* ─── User Banner ─── */
+.user-banner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 28px 32px;
+  margin-bottom: 30px;
+  position: relative;
+  overflow: hidden;
+  animation: slideUp 0.5s ease forwards;
+}
+
+.user-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.05) 0%, rgba(79, 172, 254, 0.03) 100%);
+  pointer-events: none;
+}
+
+.banner-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid rgba(0, 229, 255, 0.3);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.banner-avatar:hover {
+  border-color: var(--primary-color, #00e5ff);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.25);
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+  color: white;
+  font-size: 0.75rem;
+  gap: 4px;
+}
+
+.banner-avatar:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.banner-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.banner-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+  color: #fff;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  color: var(--accent-color, #79f1a4);
+  background: rgba(121, 241, 164, 0.1);
+  border: 1px solid rgba(121, 241, 164, 0.2);
+  padding: 3px 10px;
+  border-radius: 12px;
+  width: fit-content;
+}
+
+.banner-bio {
+  margin: 4px 0 0 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 400px;
+}
+
+/* ─── Profile Grid ─── */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* ─── Card ─── */
+.profile-card {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
+}
+
+.profile-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Staggered entrance */
+.card-stagger-1 {
+  animation: slideUp 0.5s ease forwards;
+  animation-delay: 0.1s;
+  opacity: 0;
+}
+
+.card-stagger-2 {
+  animation: slideUp 0.5s ease forwards;
+  animation-delay: 0.25s;
+  opacity: 0;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Card Title ─── */
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.15rem;
+  margin-top: 0;
+  margin-bottom: 24px;
+  color: var(--primary-color, #00e5ff);
+  font-weight: 600;
+}
+
+.card-title-security {
+  color: #ff6b6b;
+}
+
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 229, 255, 0.1);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.card-title-security .card-icon {
+  background: rgba(255, 107, 107, 0.1);
+}
+
+/* ─── Form ─── */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #cceeff;
+  font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.3s;
+  box-sizing: border-box;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: var(--secondary-color, #00b4db);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(0, 180, 219, 0.12);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ─── Form Actions ─── */
+.form-actions {
+  margin-top: 28px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ─── Buttons ─── */
+.btn-primary {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--secondary-color, #00b4db), var(--primary-color, #00e5ff));
+  border: none;
+  color: #00334e;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(0, 229, 255, 0.25);
+  font-size: 0.95rem;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 229, 255, 0.4);
+  filter: brightness(1.1);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-danger-solid {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.25);
+  font-size: 0.95rem;
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+  filter: brightness(1.1);
+}
+
+.btn-danger-solid:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ─── Button Spinner ─── */
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-left-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─── Password Strength Indicator ─── */
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+.strength-fill.strength-weak {
+  background: #e74c3c;
+}
+
+.strength-fill.strength-fair {
+  background: #f39c12;
+}
+
+.strength-fill.strength-good {
+  background: #00b4db;
+}
+
+.strength-fill.strength-strong {
+  background: #2ecc71;
+}
+
+.strength-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 28px;
+}
+
+.strength-label.strength-weak {
+  color: #e74c3c;
+}
+
+.strength-label.strength-fair {
+  color: #f39c12;
+}
+
+.strength-label.strength-good {
+  color: #00b4db;
+}
+
+.strength-label.strength-strong {
+  color: #2ecc71;
+}
+
+/* ─── Password Match Hint ─── */
+.password-match-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: #e74c3c;
+}
+
+.password-match-hint.match-ok {
+  color: #2ecc71;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .profile-container {
+    padding: 15px 15px 40px;
+  }
+
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .user-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px 20px;
+  }
+
+  .banner-bio {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .banner-info {
+    align-items: center;
+  }
+
+  .profile-card {
+    padding: 22px;
+  }
+
+  .page-title.gradient-text {
+    font-size: 1.5rem;
+  }
+}

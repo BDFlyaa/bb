@@ -15,7 +15,7 @@ export const store = reactive({
   isLoading: false,
   isLoggedIn: !!localStorage.getItem('token'),
   token: localStorage.getItem('token') || '',
-  user: JSON.parse(localStorage.getItem('user') || '{"id": 0, "name": "User", "role": "volunteer", "points": 0}'),
+  user: JSON.parse(localStorage.getItem('user') || '{"id": 0, "name": "User", "role": "volunteer", "points": 0, "avatar": "", "bio": ""}'),
 
   // 是否为管理员
   get isAdmin() {
@@ -41,7 +41,9 @@ export const store = reactive({
         id: user.userId || user.id, // 兼容不同后端返回字段
         name: user.username,
         role: user.role, // 保持原始英文代码
-        points: user.points
+        points: user.points,
+        avatar: user.avatar || '',
+        bio: user.bio || ''
       };
 
       localStorage.setItem('token', token);
@@ -79,9 +81,17 @@ export const store = reactive({
   logout() {
     this.isLoggedIn = false;
     this.token = '';
-    this.user = { name: '', role: '', points: 0 };
+    this.user = { name: '', role: '', points: 0, avatar: '', bio: '' };
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+  },
+
+  // 更新个人资料
+  updateProfile(profile: { name?: string; avatar?: string; bio?: string }) {
+    if (this.user) {
+      this.user = { ...this.user, ...profile };
+      localStorage.setItem('user', JSON.stringify(this.user));
+    }
   },
 
   // 更新积分（正数为增加，负数为扣除）

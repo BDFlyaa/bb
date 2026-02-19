@@ -287,7 +287,7 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
         // 对于自动检测完成但尚未创建 TaskCompletion 记录的任务，自动发放积分
         // 使用事务确保积分和任务记录的一致性
         let pointsAwarded = 0;
-        
+
         // 只有在有新任务完成时才开启事务
         const newTasks = Object.entries(autoDetected)
             .filter(([taskIdStr, detected]) => {
@@ -301,14 +301,14 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
                 for (const [taskIdStr, _] of newTasks) {
                     const taskId = parseInt(taskIdStr);
                     const reward = taskRewardsMap[taskId];
-                    
+
                     await TaskCompletion.create({
                         userId,
                         taskId,
                         pointsAwarded: reward.points,
                         completedAt: new Date()
                     }, { transaction });
-                    
+
                     pointsAwarded += reward.points;
                     completedTaskIds.push(taskId);
                 }
@@ -317,7 +317,7 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
                     user.points = (user.points || 0) + pointsAwarded;
                     await user.save({ transaction });
                 }
-                
+
                 await transaction.commit();
             } catch (err) {
                 await transaction.rollback();
@@ -509,6 +509,157 @@ router.post('/complete-task', authenticateToken, async (req, res) => {
         });
     } catch (error) {
         console.error('完成任务失败:', error);
+        res.status(500).json({ message: '服务器内部错误' });
+    }
+});
+
+// ===== 数据统计增强 =====
+
+// 导出 CSV 报表（管理员）
+router.get('/export', authenticateToken, async (req, res) => {
+    try {
+        // 验证管理员权限
+        if (req.user.role !== 'system_admin') {
+            return res.status(403).json({ message: '仅管理员可导出数据' });
+        }
+
+        const records = await CheckinRecord.findAll({
+            where: { status: 'approved' },
+            include: [
+                { model: User, as: 'user', attributes: ['username'] },
+                { model: RecycleStation, as: 'station', attributes: ['name'] }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        // 构建 CSV
+        const BOM = '\uFEFF'; // UTF-8 BOM，确保 Excel 正确识别中文
+        const header = '日期,用户,站点,类型,重量(kg),积分\n';
+        const rows = records.map(r => {
+            const date = new Date(r.createdAt).toLocaleString('zh-CN');
+            const user = r.user?.username || '匿名用户';
+            const station = r.station?.name || '未知站点';
+            // 转义包含逗号或引号的字段
+            const escapeCsv = (val) => {
+                const str = String(val);
+                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+            };
+            return [
+                escapeCsv(date),
+                escapeCsv(user),
+                escapeCsv(station),
+                escapeCsv(r.type),
+                r.weight,
+                r.points
+            ].join(',');
+        }).join('\n');
+
+        const csv = BOM + header + rows;
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename=recycle_report.csv');
+        res.send(csv);
+    } catch (error) {
+        console.error('导出数据失败:', error);
+        res.status(500).json({ message: '服务器内部错误' });
+    }
+});
+
+// 月度对比（本月 vs 上月）
+router.get('/monthly-comparison', async (req, res) => {
+    try {
+        const now = new Date();
+        // 本月起始
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        // 上月起始与结束
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+        // 本月数据
+        const thisMonthResult = await CheckinRecord.findOne({
+            attributes: [
+                [fn('SUM', col('weight')), 'totalWeight'],
+                [fn('COUNT', col('id')), 'totalCount']
+            ],
+            where: {
+                status: 'approved',
+                createdAt: { [Op.gte]: thisMonthStart }
+            },
+            raw: true
+        });
+
+        // 上月数据
+        const lastMonthResult = await CheckinRecord.findOne({
+            attributes: [
+                [fn('SUM', col('weight')), 'totalWeight'],
+                [fn('COUNT', col('id')), 'totalCount']
+            ],
+            where: {
+                status: 'approved',
+                createdAt: {
+                    [Op.gte]: lastMonthStart,
+                    [Op.lte]: lastMonthEnd
+                }
+            },
+            raw: true
+        });
+
+        const thisWeight = parseFloat(thisMonthResult?.totalWeight || 0);
+        const thisCount = parseInt(thisMonthResult?.totalCount || 0);
+        const lastWeight = parseFloat(lastMonthResult?.totalWeight || 0);
+        const lastCount = parseInt(lastMonthResult?.totalCount || 0);
+
+        // 计算变化百分比
+        const weightChange = lastWeight > 0
+            ? parseFloat(((thisWeight - lastWeight) / lastWeight * 100).toFixed(1))
+            : (thisWeight > 0 ? 100 : 0);
+        const countChange = lastCount > 0
+            ? parseFloat(((thisCount - lastCount) / lastCount * 100).toFixed(1))
+            : (thisCount > 0 ? 100 : 0);
+
+        res.json({
+            thisMonth: { weight: thisWeight.toFixed(1), count: thisCount },
+            lastMonth: { weight: lastWeight.toFixed(1), count: lastCount },
+            weightChange,
+            countChange
+        });
+    } catch (error) {
+        console.error('获取月度对比失败:', error);
+        res.status(500).json({ message: '服务器内部错误' });
+    }
+});
+
+// 站点回收量排行
+router.get('/station-ranking', async (req, res) => {
+    try {
+        const stationStats = await CheckinRecord.findAll({
+            attributes: [
+                'stationId',
+                [fn('SUM', col('weight')), 'totalWeight']
+            ],
+            where: {
+                status: 'approved',
+                stationId: { [Op.ne]: null }
+            },
+            include: [
+                { model: RecycleStation, as: 'station', attributes: ['name'] }
+            ],
+            group: ['stationId', 'station.id', 'station.name'],
+            order: [[literal('totalWeight'), 'DESC']],
+            limit: 10
+        });
+
+        const ranking = stationStats.map(s => ({
+            name: s.station?.name || '未知站点',
+            totalWeight: parseFloat(parseFloat(s.dataValues.totalWeight || 0).toFixed(1))
+        }));
+
+        res.json(ranking);
+    } catch (error) {
+        console.error('获取站点排行失败:', error);
         res.status(500).json({ message: '服务器内部错误' });
     }
 });

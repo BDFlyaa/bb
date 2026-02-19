@@ -37,6 +37,7 @@ const router = createRouter({
         { path: 'blockchain', component: () => import('../pages/blockchain/Traceability.vue') },
         { path: 'mall', component: () => import('../pages/mall/Mall.vue') },
         { path: 'community', component: () => import('../pages/community/Community.vue') },
+        { path: 'profile', component: () => import('../pages/profile/ProfileEdit.vue') },
       ]
     }
   ]

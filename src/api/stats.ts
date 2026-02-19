@@ -103,3 +103,29 @@ export const getUserStats = (userId: number) => {
 export const completeTask = (userId: number, taskId: number) => {
   return request.post<any, { success: boolean; message: string; newPoints: number }>('/stats/complete-task', { userId, taskId });
 };
+
+// ===== 数据统计增强 =====
+
+export interface MonthlyComparison {
+  thisMonth: { weight: string; count: number };
+  lastMonth: { weight: string; count: number };
+  weightChange: number;
+  countChange: number;
+}
+
+export interface StationRank {
+  name: string;
+  totalWeight: number;
+}
+
+export const getMonthlyComparison = () => {
+  return request.get<any, MonthlyComparison>('/stats/monthly-comparison');
+};
+
+export const getStationRanking = () => {
+  return request.get<any, StationRank[]>('/stats/station-ranking');
+};
+
+export const exportStats = () => {
+  return request.get<any, Blob>('/stats/export', { responseType: 'blob' });
+};

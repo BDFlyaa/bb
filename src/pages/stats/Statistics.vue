@@ -16,6 +16,10 @@
             <span class="update-time">{{ currentTime }}</span>
           </div>
         </div>
+        <button class="export-btn" @click="handleExport">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          导出报表
+        </button>
       </div>
       
       <!-- 顶部核心指标卡片 -->
@@ -155,6 +159,67 @@
                 <div class="rank-score">{{ u.score }}</div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部扩展行：月度对比 + 站点排行 -->
+      <div class="bottom-row">
+        <div class="glass-panel monthly-comparison">
+          <div class="panel-header">
+            <h3>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+              月度对比分析
+            </h3>
+          </div>
+          <div class="comparison-grid">
+            <div class="month-card">
+              <div class="month-label">本月</div>
+              <div class="month-weight">{{ monthlyComparison.thisMonth.weight }} <span class="unit">kg</span></div>
+              <div class="month-count">{{ monthlyComparison.thisMonth.count }} 次回收</div>
+            </div>
+            <div class="vs-divider">
+              <span>VS</span>
+            </div>
+            <div class="month-card">
+              <div class="month-label">上月</div>
+              <div class="month-weight">{{ monthlyComparison.lastMonth.weight }} <span class="unit">kg</span></div>
+              <div class="month-count">{{ monthlyComparison.lastMonth.count }} 次回收</div>
+            </div>
+          </div>
+          <div class="change-tags">
+            <div class="change-tag" :class="monthlyComparison.weightChange >= 0 ? 'up' : 'down'">
+              <svg v-if="monthlyComparison.weightChange >= 0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              重量 {{ Math.abs(monthlyComparison.weightChange) }}%
+            </div>
+            <div class="change-tag" :class="monthlyComparison.countChange >= 0 ? 'up' : 'down'">
+              <svg v-if="monthlyComparison.countChange >= 0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              次数 {{ Math.abs(monthlyComparison.countChange) }}%
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-panel station-ranking">
+          <div class="panel-header">
+            <h3>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+              站点回收量排行
+            </h3>
+          </div>
+          <div class="station-list">
+            <div class="station-row" v-for="(s, i) in stationRanking" :key="i">
+              <div class="station-idx" :class="'idx-' + (i + 1)">{{ i + 1 }}</div>
+              <div class="station-info">
+                <div class="station-name">{{ s.name }}</div>
+                <div class="station-bar-bg">
+                  <div class="station-bar-fill" :style="{ width: (s.totalWeight / stationMaxWeight * 100) + '%' }"></div>
+                </div>
+              </div>
+              <div class="station-weight">{{ s.totalWeight }} kg</div>
+            </div>
+            <div v-if="stationRanking.length === 0" class="empty-state">暂无站点数据</div>
           </div>
         </div>
       </div>
@@ -310,9 +375,13 @@ import {
     pieChartGradient,
     userStats,
     store,
+    monthlyComparison,
+    stationRanking,
+    stationMaxWeight,
     initStatistics,
     handleTaskComplete,
-    getMedalIcon
+    getMedalIcon,
+    handleExport
 } from './Statistics';
 
 onMounted(() => {
