@@ -246,21 +246,29 @@ const unshipOrder = async (order: any) => {
 };
 
 const cancelOrder = async (order: any) => {
-  if (!confirm(`确定要取消订单 ${order.id} 吗？`)) return;
-  
-  try {
-    await axios.put(`${API_URL}/admin/orders/${order.orderId}/cancel`, {}, {
-      headers: { Authorization: `Bearer ${store.token}` }
-    });
-    order.status = 'cancelled';
-    order.statusText = '已取消';
-    if (order.status === 'pending') {
-        pendingOrders.value--;
+  if (!confirmData.value) return;
+
+  confirmData.value = {
+    title: '订单取消确认',
+    message: `确定要取消订单 ${order.id} 吗？此操作将使订单失效。`,
+    type: 'warning',
+    action: async () => {
+      try {
+        await axios.put(`${API_URL}/admin/orders/${order.orderId}/cancel`, {}, {
+          headers: { Authorization: `Bearer ${store.token}` }
+        });
+        order.status = 'cancelled';
+        order.statusText = '已取消';
+        if (order.status === 'pending') {
+            pendingOrders.value--;
+        }
+        // alert(`订单 ${order.id} 已取消`);
+      } catch (error: any) {
+        alert(error.response?.data?.message || '操作失败');
+      }
     }
-    alert(`订单 ${order.id} 已取消`);
-  } catch (error: any) {
-    alert(error.response?.data?.message || '操作失败');
-  }
+  };
+  showConfirmModal.value = true;
 };
 
 const showOrderDetailsModal = ref(false);

@@ -73,29 +73,8 @@
               </h3>
             </div>
             <div class="chart-container-pie">
-               <!-- 左侧：CSS 3D 饼图/环形图 -->
-               <div class="pie-chart-wrapper">
-                 <div class="pie-chart-spinner" :style="{ background: pieChartGradient }"></div>
-                 <div class="inner-circle">
-                   <span class="total-label">总回收量</span>
-                   <span class="total-value">{{ overview.totalWeight }}</span>
-                 </div>
-               </div>
-               
-               <!-- 右侧：图例详情 -->
-               <div class="chart-legend">
-                 <div class="legend-item" v-for="cat in categoryBreakdown.categories" :key="cat.name">
-                   <div class="info-row">
-                     <span class="dot" :style="{ background: cat.color, boxShadow: '0 0 8px ' + cat.color }"></span>
-                     <span class="name">{{ cat.name }}</span>
-                     <span class="val">{{ cat.percentage }}%</span>
-                   </div>
-                   <div class="bar-bg"><div class="bar" :style="{ width: cat.percentage + '%', background: cat.color }"></div></div>
-                 </div>
-                 <div v-if="categoryBreakdown.categories.length === 0" class="empty-state">
-                   暂无分类数据
-                 </div>
-               </div>
+               <!-- ECharts 饼图容器 -->
+               <div ref="pieChartRef" class="echart-container"></div>
             </div>
           </div>
           
@@ -107,13 +86,7 @@
               </h3>
             </div>
             <div class="trend-chart-v2">
-              <div class="chart-bars">
-                <div class="bar-wrapper" v-for="(w, i) in weeklyTrend.weights" :key="i">
-                  <div class="bar-value-tooltip">{{ w }}kg</div>
-                  <div class="bar-fill" :style="{height: Math.min(w * 4, 100) + '%'}"></div>
-                  <div class="bar-label">{{ weeklyTrend.days[i] }}</div>
-                </div>
-              </div>
+              <div ref="trendChartRef" class="echart-container"></div>
             </div>
           </div>
         </div>
@@ -335,25 +308,60 @@
         </div>
 
         <div class="right-section">
-          <div class="impact-visual glass-panel fade-in-up delay-3">
-            <h3>
-              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M2 22h20"/><path d="M2 12h20"/><path d="M2 7h20"/><path d="M2 17h20"/><path d="M2 12c0-3 2.5-5 5-5s5 2 5 5 0 5 2.5 5 5 5 5-2 5-5"/></svg>
-              你的影响力
-            </h3>
-            <div class="impact-art">
-              <!-- 简单的CSS绘图：瓶子变成鱼 -->
-              <div class="bottle-to-fish">
-                <div class="fish">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16s9-10 20-4C12 22 2 16 2 16"/><path d="M12 12v3"/><path d="M2 16v-4"/></svg>
-                </div>
-                <div class="arrow">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                </div>
-                <div class="bottle">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6v4h-6z"/><path d="M15 6l2 4v12H7V10l2-4"/></svg>
+          <div class="pet-system glass-panel fade-in-up delay-3">
+            <div class="panel-header">
+              <h3>
+                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                海洋伙伴
+              </h3>
+              <span class="pet-level">Lv.{{ userStats.level }}</span>
+            </div>
+            
+            <div class="pet-display" @click="handlePetClick">
+              <!-- 虚拟生物容器 -->
+              <div class="pet-container" :class="[getPetStage, { 'is-happy': isHappy }]">
+                <div class="turtle-pet">
+                  <div class="turtle-body">
+                    <div class="shell">
+                      <!-- 根据等级显示不同的花纹复杂度 -->
+                      <div class="pattern" :class="'complexity-' + getPatternComplexity"></div>
+                    </div>
+                    <div class="head">
+                      <div class="eyes"></div>
+                      <!-- 增加嘴巴显示表情 -->
+                      <div class="mouth" :class="{ 'smile': isHappy }"></div>
+                    </div>
+                    <div class="flipper flipper-tl"></div>
+                    <div class="flipper flipper-tr"></div>
+                    <div class="flipper flipper-bl"></div>
+                    <div class="flipper flipper-br"></div>
+                    <div class="tail"></div>
+                  </div>
+                  <!-- 气泡装饰 -->
+                  <div class="bubbles">
+                    <span v-for="i in 5" :key="i" :style="`--i:${i}`"></span>
+                  </div>
                 </div>
               </div>
-              <p class="impact-text">你回收的塑料瓶，避免了它们成为海洋生物的食物。</p>
+
+              <div class="pet-info">
+                <div class="name-tag">
+                  <h4 class="pet-name">{{ getPetName }}</h4>
+                  <span v-if="isHappy" class="heart-pop">❤</span>
+                </div>
+                <p class="pet-status">{{ getPetStatus }}</p>
+                
+                <div class="growth-bar-container">
+                  <div class="growth-label">
+                    <span>成长值</span>
+                    <span>{{ userStats.levelProgress }}%</span>
+                  </div>
+                  <div class="growth-track">
+                    <div class="growth-fill" :style="{ width: userStats.levelProgress + '%' }"></div>
+                  </div>
+                  <p class="next-level-hint">再获得 {{ userStats.pointsToNextLevel }} 积分即可升级</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -363,7 +371,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, onUnmounted, computed, ref } from 'vue';
 import {
     isAdmin,
     currentTime,
@@ -372,20 +380,65 @@ import {
     rankings,
     weeklyTrend,
     categoryBreakdown,
-    pieChartGradient,
     userStats,
     store,
     monthlyComparison,
     stationRanking,
     stationMaxWeight,
+    pieChartRef,
+    trendChartRef,
+    updateCharts,
+    disposeCharts,
     initStatistics,
     handleTaskComplete,
     getMedalIcon,
     handleExport
 } from './Statistics';
 
+// 互动逻辑
+const isHappy = ref(false);
+const handlePetClick = () => {
+  if (isHappy.value) return;
+  isHappy.value = true;
+  setTimeout(() => {
+    isHappy.value = false;
+  }, 2000);
+};
+
+// 花纹复杂度计算
+const getPatternComplexity = computed(() => {
+  if (userStats.value.level <= 3) return 1;
+  if (userStats.value.level <= 7) return 2;
+  return 3;
+});
+
+// 宠物阶段计算
+const getPetStage = computed(() => {
+  if (userStats.value.level <= 2) return 'stage-hatchling';
+  if (userStats.value.level <= 5) return 'stage-juvenile';
+  return 'stage-guardian';
+});
+
+// 宠物名称
+const getPetName = computed(() => {
+  if (userStats.value.level <= 2) return '小绿 (幼年体)';
+  if (userStats.value.level <= 5) return '阿蓝 (青少年体)';
+  return '蔚蓝守护者 (成年体)';
+});
+
+// 宠物状态描述
+const getPetStatus = computed(() => {
+  if (userStats.value.levelProgress > 80) return '非常有精神，期待着长大！';
+  if (userStats.value.levelProgress > 40) return '正在快乐地游动，感谢你的保护。';
+  return '刚刚吃饱，正在静静休息。';
+});
+
 onMounted(() => {
     initStatistics();
+});
+
+onUnmounted(() => {
+    disposeCharts();
 });
 </script>
 

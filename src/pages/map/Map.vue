@@ -118,30 +118,37 @@
     <!-- 申报/新增模态框 -->
     <Transition name="fade">
       <div v-if="showReportModal" class="modal-overlay" @click.self="showReportModal = false">
-        <div class="modal glass-panel shadow-xl">
-          <div class="modal-header">
-            <h3>{{ isAdmin ? '新增回收站' : '申报新回收点' }}</h3>
+        <div class="modal ocean-modal shadow-xl">
+          <div class="modal-header ocean-header">
+            <h3>
+              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              {{ isAdmin ? '新增回收站' : '申报新回收点' }}
+            </h3>
             <span class="close-btn" @click="showReportModal = false">&times;</span>
           </div>
-          <div class="modal-body">
+          <div class="modal-body ocean-body">
             <div class="input-group">
               <label>站点名称</label>
-              <input type="text" v-model="reportForm.name" :placeholder="isAdmin ? '输入官方名称' : '例如：青岛路回收站'">
+              <input type="text" v-model="reportForm.name" class="ocean-input" :placeholder="isAdmin ? '输入官方名称' : '例如：青岛路回收站'">
             </div>
             <div class="input-group">
               <label>详细地址</label>
-              <input type="text" v-model="reportForm.address" placeholder="请输入详细地址">
+              <input type="text" v-model="reportForm.address" class="ocean-input" placeholder="请输入详细地址">
             </div>
             <div class="input-group">
               <label>坐标拾取</label>
-              <div class="coordinate-info">
+              <div class="coordinate-info ocean-coordinate">
                 {{ reportForm.lng && reportForm.lat ? `${reportForm.lng.toFixed(4)}, ${reportForm.lat.toFixed(4)}` : '请在地图上点击选择位置' }}
               </div>
             </div>
           </div>
-          <div class="modal-footer">
-            <button class="btn-ghost" @click="showReportModal = false">取消</button>
-            <button class="btn-primary" @click="submitReport">确认{{ isAdmin ? '创建' : '提交申报' }}</button>
+          <div class="modal-footer ocean-footer">
+            <button class="ocean-btn-ghost" @click="showReportModal = false">取消</button>
+            <button class="btn-primary ocean-btn" @click="submitReport">确认{{ isAdmin ? '创建' : '提交申报' }}</button>
+          </div>
+          <!-- 装饰元素 -->
+          <div class="bubbles">
+            <span></span><span></span><span></span><span></span><span></span>
           </div>
         </div>
       </div>
@@ -150,21 +157,24 @@
     <!-- 报错反馈模态框 (志愿者) -->
     <Transition name="fade">
       <div v-if="showIssueModal" class="modal-overlay" @click.self="showIssueModal = false">
-        <div class="modal glass-panel shadow-xl">
-          <div class="modal-header">
-            <h3>⚠️ 站点报错反馈</h3>
+        <div class="modal ocean-modal shadow-xl">
+          <div class="modal-header ocean-header">
+            <h3>
+              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; color: #faad14;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              站点报错反馈
+            </h3>
             <span class="close-btn" @click="showIssueModal = false">&times;</span>
           </div>
-          <div class="modal-body">
+          <div class="modal-body ocean-body">
             <div class="input-group">
               <label>选择站点</label>
-              <select v-model="issueForm.stationId">
+              <select v-model="issueForm.stationId" class="ocean-input">
                 <option v-for="s in mockStations" :key="s.id" :value="s.id">{{ s.name }}</option>
               </select>
             </div>
             <div class="input-group">
               <label>问题类型</label>
-              <select v-model="issueForm.type">
+              <select v-model="issueForm.type" class="ocean-input">
                 <option value="full">箱体已满</option>
                 <option value="broken">设施损坏</option>
                 <option value="dirty">周边脏乱</option>
@@ -173,12 +183,16 @@
             </div>
             <div class="input-group">
               <label>详细说明</label>
-              <textarea v-model="issueForm.desc" placeholder="请描述具体情况..."></textarea>
+              <textarea v-model="issueForm.desc" class="ocean-input" placeholder="请描述具体情况..."></textarea>
             </div>
           </div>
-          <div class="modal-footer">
-            <button class="btn-ghost" @click="showIssueModal = false">取消</button>
-            <button class="btn-primary" @click="submitIssue">提交反馈</button>
+          <div class="modal-footer ocean-footer">
+            <button class="ocean-btn-ghost" @click="showIssueModal = false">取消</button>
+            <button class="btn-primary ocean-btn" @click="submitIssue">提交反馈</button>
+          </div>
+          <!-- 装饰元素 -->
+          <div class="bubbles">
+            <span></span><span></span><span></span><span></span><span></span>
           </div>
         </div>
       </div>
@@ -187,12 +201,15 @@
     <!-- 审核列表模态框 (管理员) -->
     <Transition name="fade">
       <div v-if="showAuditModal" class="modal-overlay" @click.self="showAuditModal = false">
-        <div class="modal glass-panel shadow-xl wide-modal">
-          <div class="modal-header">
-            <h3>📝 点位申请审核</h3>
+        <div class="modal ocean-modal shadow-xl wide-modal">
+          <div class="modal-header ocean-header">
+            <h3>
+              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              点位申请审核
+            </h3>
             <span class="close-btn" @click="showAuditModal = false">&times;</span>
           </div>
-          <div class="modal-body">
+          <div class="modal-body ocean-body">
             <table class="admin-table">
               <thead>
                 <tr>
@@ -219,6 +236,10 @@
               </tbody>
             </table>
           </div>
+          <!-- 装饰元素 -->
+          <div class="bubbles">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
         </div>
       </div>
     </Transition>
@@ -226,12 +247,15 @@
     <!-- 报错处理模态框 (管理员) -->
     <Transition name="fade">
       <div v-if="showErrorListModal" class="modal-overlay" @click.self="showErrorListModal = false">
-        <div class="modal glass-panel shadow-xl wide-modal">
-          <div class="modal-header">
-            <h3>🛠️ 报错反馈处理</h3>
+        <div class="modal ocean-modal shadow-xl wide-modal">
+          <div class="modal-header ocean-header">
+            <h3>
+              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+              报错反馈处理
+            </h3>
             <span class="close-btn" @click="showErrorListModal = false">&times;</span>
           </div>
-          <div class="modal-body">
+          <div class="modal-body ocean-body">
             <table class="admin-table">
               <thead>
                 <tr>
@@ -254,6 +278,10 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+          <!-- 装饰元素 -->
+          <div class="bubbles">
+            <span></span><span></span><span></span><span></span><span></span>
           </div>
         </div>
       </div>
@@ -297,7 +325,7 @@
             </div>
           </div>
           <div class="modal-footer ocean-footer">
-            <button class="btn-ghost" @click="showEditModal = false">取消</button>
+            <button class="ocean-btn-ghost" @click="showEditModal = false">取消</button>
             <button class="btn-primary ocean-btn" @click="submitEdit">保存修改</button>
           </div>
           <!-- 装饰元素 -->
@@ -326,7 +354,7 @@
             </div>
           </div>
           <div class="modal-footer ocean-footer">
-            <button class="btn-ghost" @click="showDeleteModal = false">取消</button>
+            <button class="ocean-btn-ghost" @click="showDeleteModal = false">取消</button>
             <button class="btn-danger" style="background: rgba(255, 71, 87, 0.2); border-color: #ff4757;" @click="confirmDelete">确认删除</button>
           </div>
            <!-- 装饰元素 -->

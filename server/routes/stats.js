@@ -246,11 +246,11 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
             where: { userId, status: 'approved' }
         });
 
-        // 拯救海洋生物数（简化公式：每10kg拯救1只）
-        const savedAnimals = Math.floor(totalWeight / 10);
+        // 拯救海洋生物数（每5000积分拯救1只）
+        const points = user?.points || 0;
+        const savedAnimals = Math.floor(points / 5000);
 
         // 计算等级（每500积分一级）
-        const points = user?.points || 0;
         const level = Math.floor(points / 500) + 1;
         const nextLevelPoints = level * 500;
         const levelProgress = ((points % 500) / 500 * 100).toFixed(0);

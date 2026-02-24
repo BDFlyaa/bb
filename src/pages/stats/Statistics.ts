@@ -1,5 +1,6 @@
-import { computed, ref } from 'vue';
+import { computed, ref, nextTick } from 'vue';
 import { store } from '../../stores';
+import * as echarts from 'echarts';
 import {
   getOverview,
   getRecentActivities,
@@ -92,6 +93,11 @@ const fetchData = async () => {
       categoryBreakdown.value = categoryData;
       monthlyComparison.value = comparisonData;
       stationRanking.value = stationData;
+      
+      // Update charts after data is loaded
+      nextTick(() => {
+        updateCharts();
+      });
     } else {
       if (store.user && store.user.id) {
         await store.fetchUserProfile();
@@ -118,6 +124,7 @@ const initStatistics = () => {
   setInterval(() => {
     currentTime.value = new Date().toLocaleString();
   }, 1000);
+  window.addEventListener('resize', handleResize);
   fetchData();
 };
 
@@ -128,6 +135,8 @@ const handleTaskComplete = async (taskId: number) => {
     const result = await completeTask(store.user.id, taskId);
     if (result.success) {
       userStats.value.points = result.newPoints;
+      // 每积累 5000 积分拯救一只海洋生物
+      userStats.value.savedAnimals = Math.floor(result.newPoints / 5000);
       const task = userStats.value.tasks.find(t => t.id === taskId);
       if (task) task.done = true;
       alert(result.message);
@@ -137,21 +146,146 @@ const handleTaskComplete = async (taskId: number) => {
   }
 };
 
-// 饼图渐变
-const pieChartGradient = computed(() => {
-  const categories = categoryBreakdown.value.categories;
-  if (categories.length === 0) {
-    return 'conic-gradient(#444 0% 100%)';
+// ECharts Refs
+const pieChartRef = ref<HTMLElement | null>(null);
+const trendChartRef = ref<HTMLElement | null>(null);
+let pieChartInstance: echarts.ECharts | null = null;
+let trendChartInstance: echarts.ECharts | null = null;
+
+const handleResize = () => {
+  pieChartInstance?.resize();
+  trendChartInstance?.resize();
+};
+
+const disposeCharts = () => {
+  window.removeEventListener('resize', handleResize);
+  pieChartInstance?.dispose();
+  trendChartInstance?.dispose();
+  pieChartInstance = null;
+  trendChartInstance = null;
+};
+
+// Initialize and update charts
+const updateCharts = () => {
+  if (pieChartRef.value) {
+    if (!pieChartInstance) {
+      pieChartInstance = echarts.init(pieChartRef.value);
+    }
+    
+    const option = {
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}: {c}% ({d}%)'
+      },
+      legend: {
+        orient: 'vertical',
+        right: 10,
+        top: 'center',
+        textStyle: { color: '#fff' }
+      },
+      series: [
+        {
+          name: '回收物资分类',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['35%', '50%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: '#0f172a',
+            borderWidth: 2
+          },
+          label: {
+            show: true,
+            position: 'center',
+            formatter: () => {
+              return `总回收量\n${overview.value.totalWeight}`;
+            },
+            fontSize: 20,
+            fontWeight: 'bold',
+            color: '#fff',
+            lineHeight: 30
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: '#fff',
+              formatter: '{b}\n{c}%'
+            }
+          },
+          labelLine: {
+            show: false
+          },
+          data: categoryBreakdown.value.categories.map(c => ({
+            value: c.percentage,
+            name: c.name,
+            itemStyle: { color: c.color }
+          }))
+        }
+      ]
+    };
+    pieChartInstance.setOption(option);
   }
-  let currentPercent = 0;
-  const gradientStops = categories.map(cat => {
-    const startPercent = currentPercent;
-    const endPercent = currentPercent + cat.percentage;
-    currentPercent = endPercent;
-    return `${cat.color} ${startPercent}% ${endPercent}%`;
-  });
-  return `conic-gradient(${gradientStops.join(', ')})`;
-});
+
+  if (trendChartRef.value) {
+    if (!trendChartInstance) {
+      trendChartInstance = echarts.init(trendChartRef.value);
+    }
+    
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: [
+        {
+          type: 'category',
+          data: weeklyTrend.value.days,
+          axisTick: { alignWithLabel: true },
+          axisLine: { lineStyle: { color: '#aaa' } },
+          axisLabel: { color: '#fff' }
+        }
+      ],
+      yAxis: [
+        {
+          type: 'value',
+          axisLine: { lineStyle: { color: '#aaa' } },
+          axisLabel: { color: '#fff' },
+          splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
+        }
+      ],
+      series: [
+        {
+          name: '回收重量',
+          type: 'bar',
+          barWidth: '60%',
+          data: weeklyTrend.value.weights,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              {
+                offset: 0,
+                color: '#00e5ff'
+              },
+              {
+                offset: 1,
+                color: '#004d61'
+              }
+            ])
+          }
+        }
+      ]
+    };
+    trendChartInstance.setOption(option);
+  }
+};
 
 // 勋章图标
 const getMedalIcon = (icon: string) => {
@@ -185,13 +319,16 @@ export {
   weeklyTrend,
   inventory,
   categoryBreakdown,
-  pieChartGradient,
   userStats,
   store,
   loading,
   monthlyComparison,
   stationRanking,
   stationMaxWeight,
+  pieChartRef,
+  trendChartRef,
+  updateCharts,
+  disposeCharts,
   initStatistics,
   handleTaskComplete,
   getMedalIcon,

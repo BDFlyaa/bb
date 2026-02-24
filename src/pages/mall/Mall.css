@@ -554,33 +554,7 @@
   color: #fff;
 }
 
-/* 模态框 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  -webkit-backdrop-filter: blur(5px);
-  backdrop-filter: blur(5px);
-  padding: 20px;
-}
-
-.modal-content {
-  width: 100%;
-  max-width: 600px;
-  padding: 30px;
-  max-height: 90vh;
-  overflow-y: auto;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  border-radius: 16px;
-}
+/* 模态框基础遮罩已移至全局 ocean-theme.css */
 
 .order-list {
   margin-top: 20px;
@@ -667,7 +641,7 @@
   padding: 20px;
 }
 
-/* 表单样式 */
+/* 表单公共样式 */
 .form-group {
   margin-bottom: 20px;
 }
@@ -677,47 +651,6 @@
   margin-bottom: 8px;
   color: #ccc;
   font-size: 0.9rem;
-}
-
-.form-input,
-.form-select,
-.form-textarea {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 12px 15px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: #fff;
-  font-size: 1rem;
-  transition: all 0.3s;
-}
-
-.form-select option {
-  background: #1a1a1a;
-  color: #fff;
-}
-
-.form-input:focus,
-.form-textarea:focus,
-.form-select:focus {
-  border-color: #00e5ff;
-  background: rgba(255, 255, 255, 0.15);
-  outline: none;
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
-}
-
-.form-input:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  background: rgba(255, 255, 255, 0.05);
-  color: #888;
-}
-
-.form-textarea {
-  resize: vertical;
-  min-height: 100px;
-  font-family: inherit;
 }
 
 .form-row {
@@ -730,10 +663,6 @@
   .form-row {
     grid-template-columns: 1fr;
     gap: 15px;
-  }
-
-  .modal-content {
-    padding: 20px;
   }
 }
 
@@ -751,7 +680,6 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: rgba(0, 0, 0, 0.2);
 }
 
 .image-upload-area:hover {
@@ -830,34 +758,6 @@
   background: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   flex-shrink: 0;
-}
-
-/* 模态框底部按钮 */
-.modal-footer {
-  margin-top: 30px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.btn-cancel {
-  background: rgba(255, 255, 255, 0.05);
-  color: #aaa;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-}
-
-.btn-cancel:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .error-msg {
