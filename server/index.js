@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sequelize from './db.js';
+import { ensureUserProfileColumns } from './ensureUserProfileColumns.js';
 import authRoutes from './routes/auth.js';
 import communityRoutes from './routes/community.js';
 import mapRoutes from './routes/map.js';
@@ -47,9 +48,12 @@ app.get('/', (req, res) => {
 // 数据库同步并启动服务器
 async function startServer() {
   try {
-    // force: false 不会删除现有的表，只会创建不存在的表
-    // 注意：如果需要同步新字段，可临时改为 alter: true
-    await sequelize.sync({ force: false });
+    // force: false 不会删表；alter：为表补齐模型中新增列（如 nickname / avatar / bio）
+    await sequelize.sync({
+      force: false,
+      alter: process.env.DB_SYNC_ALTER === 'true',
+    });
+    await ensureUserProfileColumns();
     console.log('Database synced successfully.');
 
     app.listen(PORT, () => {

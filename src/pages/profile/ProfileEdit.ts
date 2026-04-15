@@ -1,5 +1,15 @@
 import { reactive, ref } from 'vue';
+import axios from 'axios';
+import { changePassword as authChangePassword, getMe, updateProfile as authUpdateProfile } from '../../api/auth';
 import { store } from '../../stores';
+
+function axiosErrText(error: unknown): string {
+  if (!axios.isAxiosError(error) || !error.response?.data) return '';
+  const d = error.response.data as { message?: string; detail?: string };
+  const base = d.message ? String(d.message) : '';
+  const detail = d.detail ? ` — ${d.detail}` : '';
+  return (base || '请求失败') + detail;
+}
 
 export const isSaving = ref(false);
 export const isChangingPassword = ref(false);
@@ -18,12 +28,34 @@ export const passwordForm = reactive({
 
 export const fileInput = ref<HTMLInputElement | null>(null);
 
-export const initProfile = () => {
+function applyUserToForm() {
   if (store.user) {
     form.name = store.user.name || '';
     form.avatar = store.user.avatar || '';
     form.bio = store.user.bio || '';
   }
+}
+
+export const initProfile = async () => {
+  if (store.isLoggedIn && store.token) {
+    try {
+      const data = await getMe();
+      store.user = {
+        ...store.user,
+        id: data.id,
+        username: data.username,
+        name: data.name || data.nickname || data.username,
+        role: data.role,
+        points: data.points ?? 0,
+        avatar: data.avatar || '',
+        bio: data.bio || ''
+      };
+      localStorage.setItem('user', JSON.stringify(store.user));
+    } catch (e) {
+      console.error('加载个人资料失败', axiosErrText(e) || e);
+    }
+  }
+  applyUserToForm();
 };
 
 export const triggerFileInput = () => {
@@ -73,22 +105,37 @@ export const saveProfile = async () => {
     return;
   }
 
+  if (!store.token) {
+    alert('请先登录');
+    return;
+  }
+
   isSaving.value = true;
-  
+
   try {
-    // 模拟 API 调用延迟
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    store.updateProfile({
-      name: form.name,
-      avatar: form.avatar,
-      bio: form.bio
+    const data = await authUpdateProfile({
+      nickname: form.name.trim(),
+      bio: (form.bio || '').trim(),
+      avatar: form.avatar
     });
-    
-    alert('个人资料已更新');
-  } catch (error) {
+
+    const u = data.user;
+    store.user = {
+      ...store.user,
+      id: u.id,
+      username: u.username,
+      name: u.name || u.nickname || u.username,
+      role: u.role,
+      points: u.points ?? store.user.points ?? 0,
+      avatar: u.avatar || '',
+      bio: u.bio || ''
+    };
+    localStorage.setItem('user', JSON.stringify(store.user));
+    applyUserToForm();
+    alert(data.message || '个人资料已更新');
+  } catch (error: unknown) {
     console.error('保存失败', error);
-    alert('保存失败，请重试');
+    alert(axiosErrText(error) || '保存失败，请重试');
   } finally {
     isSaving.value = false;
   }
@@ -112,21 +159,25 @@ export const changePassword = async () => {
     return;
   }
 
+  if (!store.token) {
+    alert('请先登录');
+    return;
+  }
+
   isChangingPassword.value = true;
 
   try {
-    // 模拟 API 调用延迟
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // 这里因为是纯前端模拟，无法真正验证旧密码是否正确
-    // 假设旧密码正确，直接返回成功
-    
+    await authChangePassword({
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword
+    });
+
     alert('密码修改成功，请重新登录');
     store.logout();
     window.location.href = '/login';
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('修改密码失败', error);
-    alert('修改密码失败，请重试');
+    alert(axiosErrText(error) || '修改密码失败，请重试');
   } finally {
     isChangingPassword.value = false;
     // 清空表单

@@ -99,5 +99,37 @@ export const articles: Record<string, Article> = {
         <p style="margin: 0; font-style: italic;"><strong>守护：</strong> 每一只成年海龟的存活都是大自然的奇迹。它们跨越千里回到出生地产卵，不应在归途中倒在人类的一念之差。保护海龟，就是保护海洋的生命力。</p>
       </div>
     `
+  },
+  ocean_report_2025: {
+    id: 'ocean_report_2025',
+    title: '2025 全球海洋现状报告：危机与希望并存',
+    category: '数据报告',
+    date: '2025-12-30',
+    views: 2451,
+    content: `
+      <p>随着2025年的到来，最新的全球海洋健康监测报告正式发布。通过卫星监测、深海探测器及全球志愿者收集的数据，我们得以窥见这一覆盖地球71%面积的蓝色家园的真实现状。</p>
+      
+      <h3>1. 太平洋垃圾带（GPGP）的动态变化</h3>
+      <p>最新数据显示，大太平洋垃圾带的面积虽然仍在扩张，但扩张速度首次出现放缓迹象。这主要得益于全球范围内对一次性塑料禁令的实施，以及像 PureOcean 这样的大型清理行动的常态化。</p>
+      
+      <h3>2. 海洋升温与酸化</h3>
+      <p>气候变化依然是海洋面临的最大长期威胁。2025年海洋表面平均温度创下历史新高，导致全球约15%的珊瑚礁面临严重的白化风险。同时，海水吸收了更多的二氧化碳，酸化程度加剧，正在影响贝类等生物的甲壳生长。</p>
+
+      <img src="https://images.unsplash.com/photo-1518467166778-b88f373ffec7?auto=format&fit=crop&w=800&q=80" alt="Ocean Health" style="width:100%; border-radius:12px; margin: 20px 0;" />
+
+      <h3>3. 生物多样性的复苏点</h3>
+      <p>尽管挑战重重，但希望依然存在。得益于全球海洋保护区（MPA）面积的增加，部分受威胁物种如蓝鲸、绿海龟的数量在某些海域出现了显著回升。这证明了人类的主动干预和保护措施确实能够逆转颓势。</p>
+
+      <h3>4. 报告核心建议</h3>
+      <ul>
+        <li><strong>加速能源转型：</strong> 减少碳排放是缓解海洋升温的根本。</li>
+        <li><strong>循环经济转型：</strong> 从源头切断塑料流入海洋，建立全球统一的回收追溯体系。</li>
+        <li><strong>科技赋能：</strong> 利用AI识别和区块链溯源技术提升清理效率。</li>
+      </ul>
+
+      <div style="background: rgba(0, 180, 219, 0.1); padding: 20px; border-radius: 12px; margin-top: 30px; border-left: 4px solid #00b4db;">
+        <p style="margin: 0; font-style: italic;"><strong>展望：</strong> 海洋的自愈能力是惊人的，前提是我们必须给它喘息的机会。2025年不是终点，而是全球海洋治理进入深度协作的新起点。</p>
+      </div>
+    `
   }
 };

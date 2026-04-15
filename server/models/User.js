@@ -39,7 +39,22 @@ const User = sequelize.define('User', {
     type: DataTypes.DATE,
     allowNull: true,
     defaultValue: null,
-  }
+  },
+  nickname: {
+    type: DataTypes.STRING(64),
+    allowNull: true,
+    comment: '展示昵称，默认可空，前端显示为 nickname 或回退到 username',
+  },
+  avatar: {
+    type: DataTypes.STRING(512),
+    allowNull: true,
+    defaultValue: '',
+  },
+  bio: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    defaultValue: '',
+  },
 }, {
   timestamps: true,
 });

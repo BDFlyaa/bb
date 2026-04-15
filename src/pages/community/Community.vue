@@ -22,10 +22,10 @@
             <h3>活跃任务</h3>
             <a href="#" class="view-all">查看全部</a>
           </div>
-          <div class="task-list">
+          <div class="task-list task-list-scroll">
             <div v-for="task in logic.tasks.value" :key="task.id" class="glass-panel task-card">
               <div class="task-image-placeholder">
-                <img src="https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fG9jZWFufGVufDB8fDB8fHww" alt="Task Cover">
+                <img :src="task.image || 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=500&auto=format&fit=crop&q=60'" alt="Task Cover">
                 <span class="task-level-badge">初级</span>
               </div>
               <div class="task-content">
@@ -90,8 +90,8 @@
             </div>
           </div>
 
-          <!-- 动态列表 -->
-          <div class="feed-list">
+          <!-- 动态列表：可视区约五条高度，向下滚动查看更早动态 -->
+          <div class="feed-list feed-list-scroll">
             <div v-for="post in logic.feed.value" :key="post.id" class="glass-panel feed-item">
               <div class="feed-header">
                 <div class="user-info">
@@ -300,7 +300,11 @@
           </div>
           <div class="form-group">
             <label>活动日期</label>
-            <input v-model="logic.newActivity.value.date" type="date" />
+            <input v-model="logic.newActivity.value.date" type="text" placeholder="例如：下周五 08:30" />
+          </div>
+          <div class="form-group">
+            <label>封面图片 URL</label>
+            <input v-model="logic.newActivity.value.image" type="text" placeholder="https://images.unsplash.com/..." />
           </div>
           <div class="form-group">
             <label>活动标签</label>

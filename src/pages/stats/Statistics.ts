@@ -75,7 +75,17 @@ const fetchData = async () => {
   loading.value = true;
   try {
     if (isAdmin.value) {
-      const [overviewData, activitiesData, rankingsData, trendData, inventoryData, categoryData, comparisonData, stationData] = await Promise.all([
+      const [
+        overviewData, 
+        activitiesData, 
+        rankingsData, 
+        trendData, 
+        inventoryData, 
+        categoryData, 
+        comparisonData, 
+        stationData
+
+      ] = await Promise.all([
         getOverview(),
         getRecentActivities(),
         getRankings(),

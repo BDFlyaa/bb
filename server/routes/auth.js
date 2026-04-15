@@ -1,8 +1,62 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
 import User from '../models/User.js';
 import { authenticateToken } from '../middleware/auth.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const avatarDir = path.join(__dirname, '../uploads/avatar');
+if (!fs.existsSync(avatarDir)) {
+  fs.mkdirSync(avatarDir, { recursive: true });
+}
+
+/** 将 base64 图片存为文件，返回 /uploads/avatar/... 路径；非 base64 则原样返回 */
+function persistAvatarIfBase64(avatarValue) {
+  if (!avatarValue || typeof avatarValue !== 'string') return avatarValue || '';
+  if (!avatarValue.startsWith('data:image/')) return avatarValue;
+
+  try {
+    const matches = avatarValue.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!matches) return '';
+
+    const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+    const data = matches[2];
+    const buffer = Buffer.from(data, 'base64');
+    if (buffer.length > 2 * 1024 * 1024) return null; // 与前端一致的 2MB 限制
+
+    const filename = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}.${ext}`;
+    const filePath = path.join(avatarDir, filename);
+    fs.writeFileSync(filePath, buffer);
+    return `/uploads/avatar/${filename}`;
+  } catch (e) {
+    console.error('保存头像失败:', e);
+    return null;
+  }
+}
+
+function sqlDetail(err) {
+  return err?.parent?.sqlMessage || err?.message || String(err);
+}
+
+function publicUserPayload(user) {
+  const u = user.get ? user.get({ plain: true }) : user;
+  return {
+    id: u.id,
+    username: u.username,
+    nickname: u.nickname || null,
+    name: u.nickname || u.username,
+    role: u.role,
+    points: u.points,
+    avatar: u.avatar || '',
+    bio: u.bio || '',
+  };
+}
 
 const router = express.Router();
 
@@ -67,12 +121,7 @@ router.post('/login', async (req, res) => {
     res.json({
       message: '登录成功',
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        points: user.points
-      }
+      user: publicUserPayload(user),
     });
   } catch (error) {
     console.error('登录错误:', error);
@@ -88,15 +137,93 @@ router.get('/me', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: '用户不存在' });
     }
 
-    res.json({
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      points: user.points
-    });
+    res.json(publicUserPayload(user));
   } catch (error) {
     console.error('获取用户信息失败:', error);
-    res.status(500).json({ message: '服务器内部错误' });
+    res.status(500).json({ message: '服务器内部错误', detail: sqlDetail(error) });
+  }
+});
+
+// 更新基本资料（昵称、简介、头像）；头像可为 URL 或 data URL（会落盘）
+router.patch('/profile', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+
+    const { nickname, bio, avatar } = req.body;
+    const updates = {};
+
+    if (nickname !== undefined) {
+      const n = String(nickname).trim();
+      if (!n) {
+        return res.status(400).json({ message: '昵称不能为空' });
+      }
+      if (n.length > 64) {
+        return res.status(400).json({ message: '昵称长度不能超过 64 个字符' });
+      }
+      updates.nickname = n;
+    }
+
+    if (bio !== undefined) {
+      const b = String(bio).trim();
+      if (b.length > 500) {
+        return res.status(400).json({ message: '个人简介不能超过 500 字' });
+      }
+      updates.bio = b;
+    }
+
+    if (avatar !== undefined) {
+      const stored = persistAvatarIfBase64(avatar);
+      if (stored === null) {
+        return res.status(400).json({ message: '头像图片无效或过大' });
+      }
+      updates.avatar = stored;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: '没有要更新的字段' });
+    }
+
+    await user.update(updates);
+
+    res.json({ message: '资料已更新', user: publicUserPayload(user) });
+  } catch (error) {
+    console.error('更新资料失败:', error);
+    res.status(500).json({ message: '服务器内部错误', detail: sqlDetail(error) });
+  }
+});
+
+// 修改密码
+router.patch('/password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: '请填写当前密码和新密码' });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ message: '新密码长度不能少于 6 位' });
+    }
+
+    const user = await User.findByPk(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+
+    const ok = await bcrypt.compare(currentPassword, user.password);
+    if (!ok) {
+      return res.status(400).json({ message: '当前密码不正确' });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await user.update({ password: hashed });
+
+    res.json({ message: '密码已修改，请重新登录' });
+  } catch (error) {
+    console.error('修改密码失败:', error);
+    res.status(500).json({ message: '服务器内部错误', detail: sqlDetail(error) });
   }
 });
 

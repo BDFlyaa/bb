@@ -1,8 +1,6 @@
 // src/stores/index.ts
 import { reactive } from 'vue';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3000/api/auth';
+import { getMe, login as authLogin, register as authRegister } from '../api/auth';
 
 // 角色映射
 const ROLE_MAP: Record<string, string> = {
@@ -32,16 +30,16 @@ export const store = reactive({
   async login(username: string, password: string) {
     this.isLoading = true;
     try {
-      const response = await axios.post(`${API_URL}/login`, { username, password });
-      const { token, user } = response.data;
+      const { token, user } = await authLogin(username, password);
 
       this.isLoggedIn = true;
       this.token = token;
       this.user = {
-        id: user.userId || user.id, // 兼容不同后端返回字段
-        name: user.username,
-        role: user.role, // 保持原始英文代码
-        points: user.points,
+        id: user.userId || user.id,
+        username: user.username,
+        name: user.name || user.nickname || user.username,
+        role: user.role,
+        points: user.points ?? 0,
         avatar: user.avatar || '',
         bio: user.bio || ''
       };
@@ -64,8 +62,8 @@ export const store = reactive({
   async register(formData: any) {
     this.isLoading = true;
     try {
-      const response = await axios.post(`${API_URL}/register`, formData);
-      return { success: true, message: response.data.message };
+      const data = await authRegister(formData);
+      return { success: true, message: data.message };
     } catch (error: any) {
       console.error('注册失败:', error);
       return {
@@ -81,7 +79,7 @@ export const store = reactive({
   logout() {
     this.isLoggedIn = false;
     this.token = '';
-    this.user = { name: '', role: '', points: 0, avatar: '', bio: '' };
+    this.user = { id: 0, username: '', name: '', role: '', points: 0, avatar: '', bio: '' };
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   },
@@ -115,16 +113,16 @@ export const store = reactive({
     if (!this.isLoggedIn) return;
 
     try {
-      const response = await axios.get(`${API_URL}/me`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      });
-      const userData = response.data;
+      const userData = await getMe();
 
       this.user = {
         id: userData.id,
-        name: userData.username,
+        username: userData.username,
+        name: userData.name || userData.nickname || userData.username,
         role: userData.role,
-        points: userData.points
+        points: userData.points ?? 0,
+        avatar: userData.avatar || '',
+        bio: userData.bio || ''
       };
 
       localStorage.setItem('user', JSON.stringify(this.user));

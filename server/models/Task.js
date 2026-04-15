@@ -19,6 +19,10 @@ const Task = sequelize.define('Task', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  image: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   tag: {
     type: DataTypes.STRING,
     defaultValue: '组队',

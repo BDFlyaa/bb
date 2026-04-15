@@ -51,6 +51,26 @@
   gap: 20px;
 }
 
+/* 活跃任务：可视高度约三个任务卡片，其余向下滚动查看更多 */
+.task-list-scroll {
+  --task-gap: 1.25rem; /* 与 .task-list gap 一致 */
+  --task-slot: 17.25rem; /* 封面区 + 文案/按钮区估算，用于约 3 条可视区 */
+  max-height: min(65vh, calc(3 * var(--task-slot) + 2 * var(--task-gap)));
+  min-height: 0; /* 网格子项内滚动时允许正确计算溢出 */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  margin-right: -4px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(0, 180, 219, 0.55) rgba(255, 255, 255, 0.08);
+}
+
+/* 列 flex + 父级 max-height 时，子项默认会 shrink，配合 overflow:hidden 会裁掉文案与按钮 */
+.task-list-scroll > .task-card {
+  flex-shrink: 0;
+}
+
 .task-card {
   padding: 0;
   overflow: hidden;
@@ -221,6 +241,45 @@
 .opt-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #00b4db;
+}
+
+/* 动态列表：可视高度约五条卡片，其余向下滚动查看更早内容 */
+.feed-list-scroll {
+  --feed-gap: 1.25rem; /* 与 .feed-item margin-bottom 一致 */
+  /* 单条估算高度（含间距），用于凑出约 5 条可视区；带大图时单条会更高，可视条数略少 */
+  --feed-slot: 11.75rem;
+  max-height: min(90vh, calc(5 * var(--feed-slot) + 4 * var(--feed-gap)));
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  margin-right: -4px;
+  scrollbar-gutter: stable;
+}
+
+.feed-list-scroll::-webkit-scrollbar,
+.task-list-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.feed-list-scroll::-webkit-scrollbar-track,
+.task-list-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.feed-list-scroll::-webkit-scrollbar-thumb,
+.task-list-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 180, 219, 0.45);
+  border-radius: 8px;
+}
+
+.feed-list-scroll::-webkit-scrollbar-thumb:hover,
+.task-list-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 180, 219, 0.65);
+}
+
+.feed-list-scroll .feed-item:last-child {
+  margin-bottom: 0;
 }
 
 /* Feed Item */

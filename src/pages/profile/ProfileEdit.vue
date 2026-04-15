@@ -144,7 +144,7 @@ const passwordStrengthText = computed(() => {
 });
 
 onMounted(() => {
-  initProfile();
+  void initProfile();
 });
 </script>
 

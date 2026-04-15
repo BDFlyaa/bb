@@ -63,10 +63,30 @@ const seedData = async () => {
 
     // 种子任务
     await Task.bulkCreate([
-      { title: '黄金海岸净滩行动', loc: '阳光海滩 Sector A', date: '周六 09:00' },
-      { title: '河流拦截网清理', loc: '大河口入海处', date: '周日 14:00' },
-      { title: '红树林塑料清理', loc: '湿地保护区', date: '下周三 10:00' },
-      { title: '深蓝港湾废弃渔网清理', loc: '北港码头', date: '下周五 08:30' },
+      { 
+        title: '黄金海岸净滩行动', 
+        loc: '阳光海滩 Sector A', 
+        date: '周六 09:00',
+        image: 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=500&auto=format&fit=crop&q=60'
+      },
+      { 
+        title: '河流拦截网清理', 
+        loc: '大河口入海处', 
+        date: '周日 14:00',
+        image: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=500&auto=format&fit=crop&q=60'
+      },
+      { 
+        title: '红树林塑料清理', 
+        loc: '湿地保护区', 
+        date: '下周三 10:00',
+        image: 'https://images.unsplash.com/photo-1468476775582-6bede20f356f?w=500&auto=format&fit=crop&q=60'
+      },
+      { 
+        title: '深蓝港湾废弃渔网清理', 
+        loc: '北港码头', 
+        date: '下周五 08:30',
+        image: 'https://images.unsplash.com/photo-1437719417032-8595fd9e9dc6?w=500&auto=format&fit=crop&q=60'
+      },
     ]);
 
     // 种子帖子

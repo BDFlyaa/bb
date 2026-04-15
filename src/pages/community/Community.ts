@@ -1,8 +1,20 @@
 import { ref } from 'vue';
-import axios from 'axios';
+import {
+  addPostComment,
+  createPost,
+  createTask,
+  deleteFeedPost,
+  deleteTask as deleteTaskApi,
+  getFeed,
+  getRankings,
+  getTasks,
+  joinTask as joinTaskApi,
+  leaveTask as leaveTaskApi,
+  likePost,
+  unlikePost,
+  updateTask
+} from '../../api/community';
 import { store } from '../../stores';
-
-const API_BASE = 'http://localhost:3000/api/community';
 
 // 定义接口类型
 interface Task {
@@ -10,6 +22,7 @@ interface Task {
   title: string;
   loc: string;
   date: string;
+  image?: string;
   isJoined?: boolean;
 }
 
@@ -52,8 +65,20 @@ export const toast = ref({
   type: 'success'
 });
 
+/**
+ * 显示一个提示消息，并在3秒后自动隐藏。
+ * 
+ * @param msg - 要显示的消息内容。
+ * @param type - 提示类型，默认为 'success'。可选值包括 'success', 'error', 'warning' 等。
+ * 
+ * 该函数通过设置 `toast.value` 对象来控制提示的显示状态，
+ * 并使用 `setTimeout` 在3秒后将提示隐藏。
+ */
 export const showToast = (msg: string, type = 'success') => {
+  // 设置提示显示状态和内容
   toast.value = { show: true, message: msg, type };
+  
+  // 3秒后隐藏提示
   setTimeout(() => {
     toast.value.show = false;
   }, 3000);
@@ -96,25 +121,37 @@ export const newActivity = ref({
   title: '',
   loc: '',
   date: '',
+  image: '',
   tag: '组队'
 });
 export const isPublishingActivity = ref(false);
 export const showActivityModal = ref(false);
 export const editingTaskId = ref<number | null>(null);
 
+/**
+ * 打开活动模态框，并根据传入的任务信息初始化模态框数据。
+ * 
+ * @param task - 可选参数，表示要编辑的任务对象。如果提供，则使用该任务的信息填充模态框；
+ *               如果未提供，则将模态框初始化为空状态。
+ */
 export const openActivityModal = (task?: any) => {
+  // 如果传入了任务对象，则设置当前编辑的任务ID，并用任务信息初始化新活动数据
   if (task) {
     editingTaskId.value = task.id;
     newActivity.value = {
       title: task.title,
       loc: task.loc,
       date: task.date,
+      image: task.image || '',
       tag: task.tag || '组队'
     };
   } else {
+    // 如果没有传入任务对象，则清空当前编辑的任务ID，并将新活动数据重置为空状态
     editingTaskId.value = null;
-    newActivity.value = { title: '', loc: '', date: '', tag: '组队' };
+    newActivity.value = { title: '', loc: '', date: '', image: '', tag: '组队' };
   }
+
+  // 显示活动模态框
   showActivityModal.value = true;
 };
 
@@ -122,7 +159,7 @@ export const closeActivityModal = () => {
   showActivityModal.value = false;
   editingTaskId.value = null;
   // 重置表单
-  newActivity.value = { title: '', loc: '', date: '', tag: '组队' };
+  newActivity.value = { title: '', loc: '', date: '', image: '', tag: '组队' };
 };
 
 export const openImagePreview = (url: string) => {
@@ -171,11 +208,11 @@ export const fetchData = async () => {
   try {
     const username = store.user.name || '';
     // 改为分别获取，避免一个接口失败导致全部不显示
-    const fetchTasks = axios.get(`${API_BASE}/tasks`, { params: { username } }).then(res => {
-      tasks.value = res.data.map((t: any) => ({ ...t, isJoined: t.isJoined || false }));
+    const fetchTasks = getTasks({ username }).then(data => {
+      tasks.value = data.map((t) => ({ ...t, isJoined: t.isJoined || false }));
     }).catch(e => console.error('任务加载失败:', e));
-    const fetchFeed = axios.get(`${API_BASE}/feed`).then(res => {
-      feed.value = res.data.map((p: any) => ({
+    const fetchFeed = getFeed().then(data => {
+      feed.value = data.map((p) => ({
         ...p,
         isLiked: false,
         comments: p.comments || [],
@@ -183,7 +220,7 @@ export const fetchData = async () => {
         newCommentContent: ''
       }));
     }).catch(e => console.error('动态加载失败:', e));
-    const fetchRankings = axios.get(`${API_BASE}/rankings`).then(res => rankings.value = res.data).catch(e => console.error('排行加载失败:', e));
+    const fetchRankings = getRankings().then(data => { rankings.value = data; }).catch(e => console.error('排行加载失败:', e));
 
     await Promise.all([fetchTasks, fetchFeed, fetchRankings]);
 
@@ -202,7 +239,7 @@ export const fetchData = async () => {
 export const joinTask = async (task: Task) => {
   try {
     const username = store.user.name || '志愿者';
-    await axios.post(`${API_BASE}/tasks/${task.id}/join`, { username });
+    await joinTaskApi(task.id, { username });
     task.isJoined = true;
     showToast(`成功加入任务：“${task.title}”！`);
   } catch (error: any) {
@@ -218,7 +255,7 @@ export const leaveTask = (task: Task) => {
     async () => {
       try {
         const username = store.user.name || '志愿者';
-        await axios.post(`${API_BASE}/tasks/${task.id}/leave`, { username });
+        await leaveTaskApi(task.id, { username });
         task.isJoined = false;
         showToast('已退出任务', 'info');
       } catch (error: any) {
@@ -234,13 +271,18 @@ export const publishPost = async () => {
 
   isPublishing.value = true;
   try {
-    const res = await axios.post(`${API_BASE}/feed`, {
+    const created = await createPost({
       content: newPostContent.value,
       image: selectedImage.value,
       user: store.user.name || '志愿者'
     });
-    // 将新发布的动态插入到列表顶部
-    feed.value.unshift(res.data);
+    feed.value.unshift({
+      ...created,
+      isLiked: false,
+      comments: created.comments || [],
+      showComments: false,
+      newCommentContent: ''
+    });
     newPostContent.value = '';
     selectedImage.value = '';
     showToast('动态发布成功！');
@@ -261,20 +303,16 @@ export const publishActivity = async () => {
 
   isPublishingActivity.value = true;
   try {
-    const authHeaders = { headers: { Authorization: `Bearer ${store.token}` } };
     if (editingTaskId.value) {
-      // 编辑模式
-      const res = await axios.put(`${API_BASE}/tasks/${editingTaskId.value}`, newActivity.value, authHeaders);
-      // 更新列表中的数据
+      const res = await updateTask(editingTaskId.value, newActivity.value);
       const index = tasks.value.findIndex(t => t.id === editingTaskId.value);
       if (index !== -1) {
-        tasks.value[index] = { ...tasks.value[index], ...res.data };
+        tasks.value[index] = { ...tasks.value[index], ...res };
       }
       showToast('活动修改成功！');
     } else {
-      // 新增模式
-      const res = await axios.post(`${API_BASE}/tasks`, newActivity.value, authHeaders);
-      tasks.value.unshift({ ...res.data, isJoined: false });
+      const res = await createTask(newActivity.value);
+      tasks.value.unshift({ ...res, isJoined: false });
       showToast('活动发布成功！');
     }
     closeActivityModal();
@@ -292,9 +330,7 @@ export const deleteActivity = (task: any) => {
     `确定要彻底删除活动 “${task.title}” 吗？此操作不可恢复。`,
     async () => {
       try {
-        await axios.delete(`${API_BASE}/tasks/${task.id}`, {
-          headers: { Authorization: `Bearer ${store.token}` }
-        });
+        await deleteTaskApi(task.id);
         tasks.value = tasks.value.filter(t => t.id !== task.id);
         showToast('活动已删除');
       } catch (error: any) {
@@ -313,11 +349,7 @@ export const cancelActivity = (task: any) => {
       try {
         // 通过修改标题来实现"取消"状态
         const newTitle = task.title.includes('(已取消)') ? task.title : `(已取消) ${task.title}`;
-        await axios.put(`${API_BASE}/tasks/${task.id}`, {
-          title: newTitle
-        }, {
-          headers: { Authorization: `Bearer ${store.token}` }
-        });
+        await updateTask(task.id, { title: newTitle });
 
         const idx = tasks.value.findIndex(t => t.id === task.id);
         if (idx !== -1 && tasks.value[idx]) {
@@ -334,9 +366,8 @@ export const cancelActivity = (task: any) => {
 
 export const toggleLike = async (post: Post) => {
   try {
-    const endpoint = post.isLiked ? 'unlike' : 'like';
-    const res = await axios.post(`${API_BASE}/feed/${post.id}/${endpoint}`);
-    post.likes = res.data.likes;
+    const res = post.isLiked ? await unlikePost(post.id) : await likePost(post.id);
+    post.likes = res.likes;
     post.isLiked = !post.isLiked;
 
     if (post.isLiked) {
@@ -355,12 +386,12 @@ export const addComment = async (post: Post) => {
   if (!post.newCommentContent?.trim()) return;
 
   try {
-    const res = await axios.post(`${API_BASE}/feed/${post.id}/comments`, {
-      content: post.newCommentContent,
+    const comment = await addPostComment(post.id, {
+      content: post.newCommentContent!,
       user: store.user.name || '志愿者'
     });
 
-    post.comments.push(res.data);
+    post.comments.push(comment);
     post.newCommentContent = '';
     showToast('评论发表成功！');
   } catch (error) {
@@ -375,9 +406,7 @@ export const deletePost = async (postId: number) => {
     '确定要永久删除这条动态吗？此操作不可撤销。',
     async () => {
       try {
-        await axios.delete(`${API_BASE}/feed/${postId}`, {
-          params: { user: store.user.name }
-        });
+        await deleteFeedPost(postId, { user: store.user.name });
         // 从列表中移除
         feed.value = feed.value.filter(p => p.id !== postId);
         showToast('动态已删除');

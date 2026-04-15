@@ -1,8 +1,10 @@
 import express from 'express';
+import { Op } from 'sequelize';
 import crypto from 'crypto';
 import TraceRecord from '../models/TraceRecord.js';
 import RecycleStation from '../models/RecycleStation.js';
 import User from '../models/User.js';
+import CheckinRecord from '../models/CheckinRecord.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -10,12 +12,63 @@ const router = express.Router();
 /**
  * 计算环保成就
  * @param {number} weight - 回收重量 (kg)
+ * @param {string} type - 回收类型
  */
-function calculateAchievement(weight) {
+function calculateAchievement(weight, type = '') {
+    const wasteType = (type || '').toLowerCase();
+    
+    // 默认配置 (塑料)
+    let config = {
+        unit: '件',
+        product: '再生 T 恤',
+        ratio: 0.5, // 0.5kg/item
+        carbonFactor: 1.5, // 1kg 塑料约减少 1.5kg 碳排放
+        oilFactor: 2.0     // 1kg 塑料约节省 2L 石油
+    };
+
+    if (wasteType.includes('纸') || wasteType.includes('paper')) {
+        config = {
+            unit: '个',
+            product: '再生纸盒',
+            ratio: 0.2,
+            carbonFactor: 0.9,
+            oilFactor: 0.5 // 纸张主要节省森林和水，这里映射为资源分值
+        };
+    } else if (wasteType.includes('金') || wasteType.includes('metal') || wasteType.includes('铝')) {
+        config = {
+            unit: '个',
+            product: '再生易拉罐',
+            ratio: 0.05,
+            carbonFactor: 9.0, // 金属回收节能极高
+            oilFactor: 4.5
+        };
+    } else if (wasteType.includes('玻') || wasteType.includes('glass')) {
+        config = {
+            unit: '个',
+            product: '再生玻璃瓶',
+            ratio: 0.3,
+            carbonFactor: 0.3,
+            oilFactor: 0.2
+        };
+    } else if (wasteType.includes('衣') || wasteType.includes('织') || wasteType.includes('textile')) {
+        config = {
+            unit: '块',
+            product: '环保再生抹布',
+            ratio: 0.1,
+            carbonFactor: 3.5,
+            oilFactor: 1.2
+        };
+    }
+
+    // 确保 weight 是数字
+    const numWeight = parseFloat(weight) || 0;
+
     return {
-        items: (weight / 0.5).toFixed(1),      // 约 0.5kg 可制作 1 件 T恤
-        carbon: (weight * 0.013).toFixed(2),   // 每 kg 塑料减少约 13g 碳排放
-        oil: (weight * 0.006).toFixed(2)       // 每 kg 塑料节省约 6ml 石油
+        items: Math.max(1, Math.floor(numWeight / config.ratio)),
+        unit: config.unit,
+        product: config.product,
+        carbon: (numWeight * config.carbonFactor).toFixed(2),
+        oil: (numWeight * config.oilFactor).toFixed(2)
     };
 }
 
@@ -31,7 +84,7 @@ async function generateBatchNo() {
     const count = await TraceRecord.count({
         where: {
             batchNo: {
-                [require('sequelize').Op.like]: `B-${dateStr}-%`
+                [Op.like]: `B-${dateStr}-%`
             }
         }
     });
@@ -110,7 +163,16 @@ router.get('/:batchNo', async (req, res) => {
             where: { batchNo },
             include: [
                 { model: RecycleStation, as: 'station', attributes: ['name'] },
-                { model: User, as: 'user', attributes: ['username'] }
+                { 
+                    model: User, 
+                    as: 'user', 
+                    attributes: ['username'] 
+                },
+                {
+                    model: CheckinRecord,
+                    as: 'checkinRecord',
+                    attributes: ['imageUrl']
+                }
             ]
         });
 
@@ -121,6 +183,9 @@ router.get('/:batchNo', async (req, res) => {
             });
         }
 
+        // 获取服务器基础 URL
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+
         res.json({
             success: true,
             data: {
@@ -129,9 +194,11 @@ router.get('/:batchNo', async (req, res) => {
                 weight: record.weight,
                 type: record.wasteType,
                 stationName: record.station?.name || '未知站点',
+                userName: record.user?.username || '匿名志愿者',
+                imageUrl: record.checkinRecord?.imageUrl ? `${baseUrl}${record.checkinRecord.imageUrl}` : '',
                 checkinTime: record.createdAt.toLocaleString('zh-CN'),
                 hashDigest: record.hashDigest,
-                achievement: calculateAchievement(record.weight)
+                achievement: calculateAchievement(record.weight, record.wasteType)
             }
         });
     } catch (error) {

@@ -39,11 +39,11 @@ router.get('/tasks', async (req, res) => {
 // 创建新任务（管理员）
 router.post('/tasks', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { title, loc, date, tag } = req.body;
+    const { title, loc, date, tag, image } = req.body;
     if (!title || !loc || !date) {
       return res.status(400).json({ message: '标题、地点、日期不能为空' });
     }
-    const newTask = await Task.create({ title, loc, date, tag: tag || '组队' });
+    const newTask = await Task.create({ title, loc, date, tag: tag || '组队', image });
     res.status(201).json(newTask);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -54,7 +54,7 @@ router.post('/tasks', authenticateToken, requireAdmin, async (req, res) => {
 router.put('/tasks/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, loc, date, tag } = req.body;
+    const { title, loc, date, tag, image } = req.body;
 
     const task = await Task.findByPk(id);
     if (!task) {
@@ -65,6 +65,7 @@ router.put('/tasks/:id', authenticateToken, requireAdmin, async (req, res) => {
     if (loc) task.loc = loc;
     if (date) task.date = date;
     if (tag) task.tag = tag;
+    if (image !== undefined) task.image = image;
 
     await task.save();
     res.json(task);

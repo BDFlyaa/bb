@@ -35,45 +35,74 @@
             <!-- 基础信息卡片 -->
             <div class="trace-info glass-panel">
               <div class="info-header">
-                <h3>📜 批次信息</h3>
+                <h3>📜 批次详情</h3>
                 <span class="status-badge" :class="searchResult.status">{{ searchResult.status === 'completed' ? '已完成' : '处理中' }}</span>
               </div>
-              <div class="info-grid">
-                <div class="info-item">
-                  <span class="label">批次编号</span>
-                  <span class="value">{{ searchResult.batchNo }}</span>
+              
+              <div class="trace-detail-layout">
+                <div class="trace-image" v-if="searchResult.imageUrl">
+                  <img :src="searchResult.imageUrl" alt="回收实拍" />
+                  <div class="image-label">回收现场实拍</div>
                 </div>
-                <div class="info-item">
-                  <span class="label">回收站点</span>
-                  <span class="value">{{ searchResult.stationName }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">回收时间</span>
-                  <span class="value">{{ searchResult.checkinTime }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">回收重量</span>
-                  <span class="value">{{ searchResult.weight }} kg</span>
-                </div>
-                <div class="info-item full">
-                  <span class="label">数据校验码 (SHA256)</span>
-                  <span class="value mono small">{{ searchResult.hashDigest }}</span>
+
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="label">回收志愿者</span>
+                    <span class="value">{{ searchResult.userName }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">回收物类型</span>
+                    <span class="value">{{ searchResult.type }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">批次编号</span>
+                    <span class="value">{{ searchResult.batchNo }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">回收站点</span>
+                    <span class="value">{{ searchResult.stationName }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">回收时间</span>
+                    <span class="value">{{ searchResult.checkinTime }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">回收重量</span>
+                    <span class="value">{{ searchResult.weight }} kg</span>
+                  </div>
+                  <div class="info-item full">
+                    <span class="label">数据校验码 (SHA256)</span>
+                    <span class="value mono small">{{ searchResult.hashDigest }}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
             <!-- 成就卡片 -->
             <div class="achievement-card glass-panel">
-              <div class="achievement-icon">👚</div>
               <h3>环保成就</h3>
               <p>您的这次回收贡献将转化为</p>
-              <div class="product-name">{{ searchResult.achievement.items }} 件再生 T 恤的原料</div>
+              <div class="product-name">
+                <span class="count">{{ searchResult.achievement.items }}</span>
+                {{ searchResult.achievement.unit || '件' }}
+                <span class="product">{{ searchResult.achievement.product || '再生制品' }}</span>
+                的原料
+              </div>
               <div class="stats-mini">
-                <span>减少碳排放 {{ searchResult.achievement.carbon }}kg</span>
-                <span>节省石油 {{ searchResult.achievement.oil }}L</span>
+                <div class="stat-tag">
+                  <span class="label">减少碳排放</span>
+                  <span class="value">{{ searchResult.achievement.carbon }}kg</span>
+                </div>
+                <div class="stat-tag">
+                  <span class="label">节省资源</span>
+                  <span class="value">{{ searchResult.achievement.oil }}L</span>
+                </div>
               </div>
               <div class="hash-footer">
                 <span class="label">🛡️ 数据已存证，真实可溯</span>
+              </div>
+              <div class="lca-disclaimer">
+                注：环保数据基于行业生命周期评估 (LCA) 标准折算
               </div>
             </div>
           </template>

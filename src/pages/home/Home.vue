@@ -29,7 +29,7 @@
     <header class="hero-section">
       <div class="hero-content fade-in">
         <h1 class="main-title">守护蔚蓝，<span class="highlight-text">共筑未来</span></h1>
-        <p class="sub-title">PureOcean 致力于利用区块链与智能识别技术，构建透明、高效的海洋塑料回收生态系统。</p>
+        <p class="sub-title">PureOcean 致力于海洋垃圾溯源与智能识别技术，构建透明、高效的海洋塑料回收生态系统。</p>
         
         <div class="action-buttons">
           <router-link to="/register" class="cta-btn primary-cta" v-if="!store.isLoggedIn">立即加入行动</router-link>
@@ -64,6 +64,7 @@
 
       <div class="wiki-grid">
         <div class="wiki-card video-card glass-panel fade-in" @click="openVideo('plastic_life')">
+          <div class="card-image-bg" :style="{ backgroundImage: `url(${getImageUrl('1.jpg')})` }"></div>
           <div class="card-bg"></div>
           <div class="play-icon">▶</div>
           <div class="content-wrapper">
@@ -74,6 +75,7 @@
         </div>
 
         <div class="wiki-card glass-panel article-card">
+          <div class="card-image-bg" :style="{ backgroundImage: `url(${getImageUrl('wsl.jpg')})` }"></div>
           <div class="content-wrapper">
             <span class="category">深度阅读</span>
             <h3>看不见的入侵者</h3>
@@ -83,22 +85,24 @@
         </div>
 
         <div class="wiki-card glass-panel game-card">
+          <div class="card-image-bg" :style="{ backgroundImage: `url(${getImageUrl('hg.jpg')})` }"></div>
           <div class="content-wrapper">
             <div class="game-icon">🐢</div>
             <h3>生态保护: 拯救海龟</h3>
             <p>了解海龟面临的塑料威胁，学习如何保护这些古老的航海家。</p>
-            <button class="btn-game" @click="openArticle('save_turtles')">
-              <span class="btn-text">阅读详情</span>
+            <button class="ocean-btn" @click="openArticle('save_turtles')" style="width: 100%; margin-top: 10px;">
+              阅读详情
             </button>
           </div>
         </div>
 
         <div class="wiki-card glass-panel article-card">
+          <div class="card-image-bg" :style="{ backgroundImage: `url(${getImageUrl('tpy.png')})` }"></div>
           <div class="content-wrapper">
             <span class="category">数据报告</span>
             <h3>2025 全球海洋现状</h3>
             <p>最新研究显示太平洋垃圾带面积正在发生变化...</p>
-            <button class="text-btn">查看报告 &rarr;</button>
+            <button class="text-btn" @click="openArticle('ocean_report_2025')">查看报告 &rarr;</button>
           </div>
         </div>
       </div>
@@ -153,6 +157,7 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import WaveBackground from '../../components/ocean/WaveBackground.vue';
 import {
   store,
@@ -163,8 +168,18 @@ import {
   oceanStats,
   openArticle,
   openVideo,
-  closeModal
+  closeModal,
+  fetchAndAnimateStats,
+  getImageUrl
 } from './Home';
+
+onMounted(() => {
+  // 启动数据获取和动画
+  fetchAndAnimateStats();
+});
 </script>
 
+<style scoped>
+@import "../../assets/styles/ocean-theme.css";
+</style>
 <style scoped src="./Home.css"></style>

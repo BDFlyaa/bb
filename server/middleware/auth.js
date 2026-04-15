@@ -13,7 +13,11 @@ export const authenticateToken = (req, res, next) => {
       console.error('JWT_SECRET is not defined in environment variables!');
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // { userId, username, role }
+    const userId = decoded.userId ?? decoded.id;
+    if (userId == null) {
+      return res.status(403).json({ message: 'Invalid token payload.' });
+    }
+    req.user = { ...decoded, userId };
     next();
   } catch (error) {
     console.error('Token verification failed:', error.message);
