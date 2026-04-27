@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import { Op } from 'sequelize';
 import User from '../models/User.js';
 import { authenticateToken } from '../middleware/auth.js';
 
@@ -144,6 +145,41 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// 获取指定用户的公开资料
+router.get('/profile/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    // 尝试匹配用户名或昵称
+    const user = await User.findOne({ 
+      where: {
+        [Op.or]: [
+          { username: username },
+          { nickname: username }
+        ]
+      } 
+    });
+    
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+
+    // 只返回公开字段
+    res.json({
+      username: user.username,
+      nickname: user.nickname || null,
+      name: user.nickname || user.username,
+      avatar: user.avatar || '',
+      bio: user.bio || '',
+      points: user.points,
+      role: user.role,
+      createdAt: user.createdAt
+    });
+  } catch (error) {
+    console.error('获取用户资料失败:', error);
+    res.status(500).json({ message: '服务器内部错误', detail: sqlDetail(error) });
+  }
+});
+
 // 更新基本资料（昵称、简介、头像）；头像可为 URL 或 data URL（会落盘）
 router.patch('/profile', authenticateToken, async (req, res) => {
   try {
@@ -224,6 +260,75 @@ router.patch('/password', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('修改密码失败:', error);
     res.status(500).json({ message: '服务器内部错误', detail: sqlDetail(error) });
+  }
+});
+
+// 模拟发送邮箱验证码（实际项目中应调用邮件服务，这里仅模拟存入内存）
+const emailCodes = new Map();
+
+router.post('/email/send-code', authenticateToken, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: '邮箱格式不正确' });
+    }
+
+    // 检查邮箱是否已被其他用户绑定
+    const existing = await User.findOne({ where: { email } });
+    if (existing && existing.id !== req.user.userId) {
+      return res.status(400).json({ message: '该邮箱已被其他账号绑定' });
+    }
+
+    // 生成 6 位随机验证码
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // 存储验证码（5分钟有效）
+    emailCodes.set(email, {
+      code,
+      expire: Date.now() + 5 * 60 * 1000
+    });
+
+    console.log(`[Email Mock] 向 ${email} 发送验证码: ${code}`);
+    
+    // 实际生产环境应在此调用 nodemailer 等发送邮件
+    // await sendRealEmail(email, code);
+
+    res.json({ message: '验证码已发送（请查看服务器控制台）' });
+  } catch (error) {
+    console.error('发送验证码失败:', error);
+    res.status(500).json({ message: '发送失败', detail: sqlDetail(error) });
+  }
+});
+
+// 绑定/修改邮箱
+router.post('/email/bind', authenticateToken, async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    const user = await User.findByPk(req.user.userId);
+
+    if (!email || !code) {
+      return res.status(400).json({ message: '请填写邮箱和验证码' });
+    }
+
+    // 验证验证码
+    const record = emailCodes.get(email);
+    if (!record || record.code !== String(code) || record.expire < Date.now()) {
+      return res.status(400).json({ message: '验证码错误或已过期' });
+    }
+
+    // 更新用户邮箱
+    await user.update({ email });
+    
+    // 清除验证码
+    emailCodes.delete(email);
+
+    res.json({ 
+      message: '邮箱绑定成功', 
+      user: publicUserPayload(user) 
+    });
+  } catch (error) {
+    console.error('绑定邮箱失败:', error);
+    res.status(500).json({ message: '绑定失败', detail: sqlDetail(error) });
   }
 });
 

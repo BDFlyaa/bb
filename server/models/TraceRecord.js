@@ -18,7 +18,7 @@ const TraceRecord = sequelize.define('TraceRecord', {
     },
     checkinRecordId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: {
             model: CheckinRecord,
             key: 'id',

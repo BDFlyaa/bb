@@ -45,7 +45,7 @@ const submitLogin = async () => {
 
 <style scoped>
 .auth-container { height: 100vh; display: flex; align-items: center; justify-content: center; z-index: 10; position: relative; }
-.auth-card { width: 350px; padding: 2rem; text-align: center; }
+.auth-card { width: 90%; max-width: 350px; padding: 2rem; text-align: center; }
 .auth-header {
   display: flex;
   flex-direction: column;

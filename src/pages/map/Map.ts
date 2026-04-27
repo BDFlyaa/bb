@@ -1,28 +1,9 @@
 import { ref, onMounted, onUnmounted, reactive, computed } from 'vue';
 import AMapLoader from '@amap/amap-jsapi-loader';
 import { store } from '../../stores';
-import axios from 'axios';
-import router from '../../router';
+import request from '../../utils/request';
 
-const API_BASE = 'http://localhost:3000/api/map';
-const api = axios.create({ baseURL: API_BASE });
-
-api.interceptors.request.use(config => {
-  if (store.token) config.headers.Authorization = `Bearer ${store.token}`;
-  return config;
-});
-
-api.interceptors.response.use(
-  response => response,
-  error => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      store.logout();
-      router.push('/login');
-      alert('登录已过期，请重新登录');
-    }
-    return Promise.reject(error);
-  }
-);
+const MAP_API = '/map';
 
 export function useMapLogic() {
   const isAdmin = computed(() => store.isAdmin);
@@ -69,7 +50,10 @@ export function useMapLogic() {
   let map: any = null;
   let geocoder: any = null;
   let placeSearch: any = null;
+  let driving: any = null;
   let markers: any[] = [];
+  let userLocation: any = null;
+  const isNavigating = ref(false);
 
   // 缓存站点数据（预加载）
   let stationsDataCache: any[] | null = null;
@@ -84,8 +68,8 @@ export function useMapLogic() {
         refreshMarkers();
         return;
       }
-      const res = await api.get('/stations');
-      mockStations.value = res.data;
+      const res = await request.get<any, any>(`${MAP_API}/stations`);
+      mockStations.value = res;
       refreshMarkers();
     } catch (e) {
       console.error('获取站点失败', e);
@@ -95,8 +79,8 @@ export function useMapLogic() {
   const fetchAudits = async () => {
     if (!isAdmin.value) return;
     try {
-      const res = await api.get('/audit');
-      pendingAudits.value = res.data;
+      const res = await request.get<any, any>(`${MAP_API}/audit`);
+      pendingAudits.value = res;
     } catch (e) {
       console.error('获取审核列表失败', e);
     }
@@ -105,8 +89,8 @@ export function useMapLogic() {
   const fetchReports = async () => {
     if (!isAdmin.value) return;
     try {
-      const res = await api.get('/report');
-      errorReports.value = res.data;
+      const res = await request.get<any, any>(`${MAP_API}/report`);
+      errorReports.value = res;
     } catch (e) {
       console.error('获取报错列表失败', e);
     }
@@ -115,8 +99,8 @@ export function useMapLogic() {
   // 预加载数据（与地图加载并行）
   const preloadData = async () => {
     try {
-      const res = await api.get('/stations');
-      stationsDataCache = res.data;
+      const res = await request.get<any, any>(`${MAP_API}/stations`);
+      stationsDataCache = res;
     } catch (e) {
       console.error('预加载站点失败', e);
     }
@@ -148,7 +132,8 @@ export function useMapLogic() {
         'AMap.Marker',
         'AMap.InfoWindow',
         'AMap.ToolBar',
-        'AMap.Geocoder'
+        'AMap.Geocoder',
+        'AMap.Driving'
       ]
     }).then((AMap) => {
       (window as any).AMap = AMap;
@@ -173,13 +158,29 @@ export function useMapLogic() {
 
           // 🚀 优化5: 定位改为后台静默执行
           const geolocation = new AMap.Geolocation({
-            enableHighAccuracy: false, // 标准精度更快
-            timeout: 5000,
+            enableHighAccuracy: true,
+            timeout: 10000,
             buttonPosition: 'RB',
             buttonOffset: new AMap.Pixel(10, 20),
-            zoomToAccuracy: false, // 不自动缩放
+            zoomToAccuracy: false,
           });
           map.addControl(geolocation);
+
+          geolocation.getCurrentPosition((status: string, result: any) => {
+            if (status === 'complete') {
+              userLocation = result.position;
+            }
+          });
+
+          geolocation.on('complete', (data: any) => {
+            userLocation = data.position;
+          });
+
+          driving = new AMap.Driving({
+            map: map,
+            panel: undefined, // 不显示文字面板，只显示地图路径
+            hideMarkers: false
+          });
         });
       }, 100);
 
@@ -315,7 +316,7 @@ export function useMapLogic() {
     try {
       if (isAdmin.value) {
         // 管理员直接添加
-        await api.post('/stations', {
+        await request.post(`${MAP_API}/stations`, {
           name: reportForm.name,
           address: reportForm.address,
           lng: reportForm.lng,
@@ -326,7 +327,7 @@ export function useMapLogic() {
         fetchStations();
       } else {
         // 志愿者提交审核
-        await api.post('/audit', {
+        await request.post(`${MAP_API}/audit`, {
           name: reportForm.name,
           address: reportForm.address,
           lng: reportForm.lng,
@@ -357,7 +358,7 @@ export function useMapLogic() {
       return;
     }
     try {
-      await api.post('/report', {
+      await request.post(`${MAP_API}/report`, {
         stationId: issueForm.stationId,
         type: issueForm.type,
         desc: issueForm.desc
@@ -371,13 +372,60 @@ export function useMapLogic() {
   };
 
   const startNav = (station: any) => {
-    alert(`正在唤起导航前往: ${station.name}`);
+    if (!userLocation) {
+      alert('正在获取您的位置，请稍后重试...');
+      // 尝试再次获取位置
+      const AMap = (window as any).AMap;
+      const geolocation = new AMap.Geolocation();
+      geolocation.getCurrentPosition((status: string, result: any) => {
+        if (status === 'complete') {
+          userLocation = result.position;
+          executeNav(station);
+        } else {
+          alert('获取位置失败，请检查浏览器定位权限');
+        }
+      });
+      return;
+    }
+    executeNav(station);
+  };
+
+  const executeNav = (station: any) => {
+    if (!driving) return;
+    
+    isNavigating.value = true;
+    driving.search(
+      userLocation,
+      [station.lng, station.lat],
+      (status: string, result: any) => {
+        if (status === 'complete') {
+          console.log('导航路径规划成功');
+        } else {
+          console.error('导航失败:', result);
+          alert('导航路径规划失败: ' + result);
+        }
+      }
+    );
+  };
+
+  const stopNav = () => {
+    if (driving) {
+      driving.clear();
+      isNavigating.value = false;
+    }
+  };
+
+  const openExternalMap = (station: any) => {
+    const { name, lng, lat } = station;
+    // 高德地图 Web URI
+    const url = `https://uri.amap.com/navigation?to=${lng},${lat},${name}&mode=car&policy=1&src=pureocean&coordinate=gaode&callnative=1`;
+    window.open(url, '_blank');
   };
 
   const reportFull = async (station: any) => {
     if (confirm(`确定要报告 "${station.name}" 已满吗？`)) {
       try {
-        await api.post('/report', {
+        await request.post(`${MAP_API}/report`, {
           stationId: station.id,
           type: 'full',
           desc: '用户快速报告：站点已满'
@@ -399,7 +447,7 @@ export function useMapLogic() {
 
   const submitEdit = async () => {
     try {
-      await api.put(`/stations/${editForm.id}`, {
+      await request.put(`${MAP_API}/stations/${editForm.id}`, {
         name: editForm.name,
         address: editForm.address,
         status: editForm.status
@@ -419,7 +467,7 @@ export function useMapLogic() {
   const confirmDelete = async () => {
     if (!deleteTarget.value) return;
     try {
-      await api.delete(`/stations/${deleteTarget.value.id}`);
+      await request.delete(`${MAP_API}/stations/${deleteTarget.value.id}`);
       fetchStations();
       showDeleteModal.value = false;
       deleteTarget.value = null;
@@ -430,7 +478,7 @@ export function useMapLogic() {
 
   const approveAudit = async (audit: any) => {
     try {
-      await api.post(`/audit/${audit.id}/approve`);
+      await request.post(`${MAP_API}/audit/${audit.id}/approve`);
       alert('已通过申请并创建新站点');
       fetchAudits();
       fetchStations();
@@ -442,7 +490,7 @@ export function useMapLogic() {
   const rejectAudit = async (audit: any) => {
     if (!confirm('确定拒绝该申请吗？')) return;
     try {
-      await api.post(`/audit/${audit.id}/reject`);
+      await request.post(`${MAP_API}/audit/${audit.id}/reject`);
       alert('已拒绝该申请');
       fetchAudits();
     } catch (e: any) {
@@ -452,7 +500,7 @@ export function useMapLogic() {
 
   const resolveReport = async (report: any) => {
     try {
-      await api.post(`/report/${report.id}/resolve`);
+      await request.post(`${MAP_API}/report/${report.id}/resolve`);
       alert('已标记为处理完成');
       fetchReports();
     } catch (e: any) {
@@ -508,6 +556,9 @@ export function useMapLogic() {
     startPicking,
     cancelPicking,
     startNav,
+    stopNav,
+    openExternalMap,
+    isNavigating,
     reportFull,
     editStation,
     deleteStation,

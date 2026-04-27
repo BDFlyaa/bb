@@ -9,6 +9,7 @@ import {
   rejectCheckin,
   getStations,
   generateStationQR,
+  exportAuditCSV,
   classifyRubbish,
   type PendingRecord,
   type Station,
@@ -99,7 +100,47 @@ export function useCheckin() {
     confidence: number;     // 识别置信度
     estimatedWeight: number; // 预估重量 (kg)
     points: number;          // 获得积分
+    count: number;           // 物品数量
+    originalRubbishName: string; // 原始垃圾名称（不含数量后缀）
   } | null>(null);
+
+  const adjustCount = (delta: number) => {
+    if (!recognitionResult.value) return;
+    
+    const newCount = Math.max(1, recognitionResult.value.count + delta);
+    if (newCount === recognitionResult.value.count) return;
+
+    const category = recognitionResult.value.category;
+    const objectCount = newCount;
+    const rubbishName = recognitionResult.value.originalRubbishName;
+
+    // 重新计算重量和积分
+    const singleWeightMap: Record<string, number> = {
+      '可回收垃圾': 0.05,
+      '有害垃圾': 0.1,
+      '厨余垃圾': 0.2,
+      '其他垃圾': 0.1
+    };
+
+    const basePointsMap: Record<string, number> = {
+      '可回收垃圾': 5,
+      '有害垃圾': 10,
+      '厨余垃圾': 2,
+      '其他垃圾': 1
+    };
+
+    const singleWeight = singleWeightMap[category] || 0.1;
+    const calculatedWeight = parseFloat((objectCount * singleWeight).toFixed(2));
+    const calculatedPoints = Math.max(10, objectCount * (basePointsMap[category] || 5));
+
+    recognitionResult.value = {
+      ...recognitionResult.value,
+      count: objectCount,
+      rubbishName: `${rubbishName}${objectCount > 1 ? ` x${objectCount}` : ''}`,
+      estimatedWeight: calculatedWeight,
+      points: calculatedPoints
+    };
+  };
   const uploadedImageUrl = ref('');
   const uploadedFile = ref<File | null>(null);
 
@@ -163,13 +204,37 @@ export function useCheckin() {
         const category = topResult.Category || topResult.category || '其他垃圾';
         const rubbishName = topResult.Rubbish || topResult.rubbish || '未知物品';
         const rubbishScore = topResult.RubbishScore || topResult.rubbishScore || 0;
+        
+        // 获取 AI 识别到的物体数量
+        const objectCount = response.data.objectCount || 1;
+
+        // 根据分类设定单重基准 (kg/个)
+        const singleWeightMap: Record<string, number> = {
+          '可回收垃圾': 0.05, // 例如一个瓶子 50g
+          '有害垃圾': 0.1,
+          '厨余垃圾': 0.2,
+          '其他垃圾': 0.1
+        };
+
+        const basePointsMap: Record<string, number> = {
+          '可回收垃圾': 5,
+          '有害垃圾': 10,
+          '厨余垃圾': 2,
+          '其他垃圾': 1
+        };
+
+        const singleWeight = singleWeightMap[category] || 0.1;
+        const calculatedWeight = parseFloat((objectCount * singleWeight).toFixed(2));
+        const calculatedPoints = Math.max(10, objectCount * (basePointsMap[category] || 5));
 
         recognitionResult.value = {
           category,
-          rubbishName,
+          rubbishName: `${rubbishName}${objectCount > 1 ? ` x${objectCount}` : ''}`,
+          originalRubbishName: rubbishName,
+          count: objectCount,
           confidence: Math.round(rubbishScore * 100),
-          estimatedWeight: weightMap[category] || 0.3,
-          points: pointsMap[category] || 15
+          estimatedWeight: calculatedWeight,
+          points: calculatedPoints
         };
 
         aiResult.value = true;
@@ -207,7 +272,7 @@ export function useCheckin() {
               id: Date.now(),
               station: '湛山街道回收站',
               type: '扫码打卡',
-              points: 10,
+              points: res.points || 10,
               time: '刚刚',
               status: 'success'
             });
@@ -349,6 +414,27 @@ export function useCheckin() {
     }
   };
 
+  const exportCSV = async () => {
+    try {
+      showToast('正在准备导出数据...', 'info');
+      // 模拟一个导出过程
+      setTimeout(() => {
+        const csvContent = "data:text/csv;charset=utf-8,志愿者,识别结果,提交时间,状态\n" +
+          auditRecords.value.map(r => `${r.user},${r.aiResult},${r.time},${r.status}`).join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `打卡记录_${auditFilter.value}_${new Date().toLocaleDateString()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('导出成功', 'success');
+      }, 1000);
+    } catch (error) {
+      showToast('导出失败', 'error');
+    }
+  };
+
   // 审核筛选状态
   const auditFilter = ref<'pending' | 'approved' | 'rejected'>('pending');
 
@@ -364,6 +450,23 @@ export function useCheckin() {
     };
     return titles[auditFilter.value] || '待处理申请';
   });
+
+  // 格式化图片 URL
+  const formatImageUrl = (url: string) => {
+    if (!url) return '';
+    let formattedUrl = url.replace(/\\/g, '/'); // 统一将反斜杠替换为正斜杠
+    // 如果后端返回的是完整 URL 且包含 localhost，替换为当前访问的 host (针对移动端调试)
+    if (formattedUrl.startsWith('http://localhost') || formattedUrl.startsWith('http://127.0.0.1')) {
+      formattedUrl = formattedUrl.replace(/http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, window.location.origin);
+    }
+    // 如果是相对路径 (例如 /uploads/...)
+    else if (!formattedUrl.startsWith('http') && !formattedUrl.startsWith('data:')) {
+      // 统一补全 /api 前缀，让 Vite 代理处理
+      const prefix = '/api';
+      formattedUrl = `${prefix}${formattedUrl.startsWith('/') ? '' : '/'}${formattedUrl}`;
+    }
+    return formattedUrl;
+  };
 
   // 加载审核数据
   const loadAuditData = async (status?: 'pending' | 'approved' | 'rejected') => {
@@ -381,7 +484,11 @@ export function useCheckin() {
       }
 
       if (recordsRes.success) {
-        auditRecords.value = recordsRes.data;
+        // 格式化记录中的图片 URL
+        auditRecords.value = recordsRes.data.map((record: any) => ({
+          ...record,
+          img: formatImageUrl(record.img)
+        }));
       }
     } catch (error) {
       console.error('Failed to load audit data:', error);
@@ -494,6 +601,15 @@ export function useCheckin() {
     }
   };
 
+  const handleImageError = (e: Event, record?: any) => {
+    const img = e.target as HTMLImageElement;
+    console.warn('审核图片加载失败:', img.src);
+    // 如果是单条记录的错误，可以在记录上标记
+    if (record) {
+      record.imgError = true;
+    }
+  };
+
   return {
     isAdmin,
     // 通用
@@ -511,6 +627,7 @@ export function useCheckin() {
     cancelScan,
     confirmCheckin,
     recognitionResult,
+    adjustCount,
     // 管理员
     activeTab,
     selectedStation,
@@ -519,6 +636,7 @@ export function useCheckin() {
     stations,
     generateQR,
     downloadQR,
+    exportCSV,
     auditRecords,
     auditFilter,
     sectionTitle,
@@ -531,6 +649,7 @@ export function useCheckin() {
     closePreview,
     isLoadingAudit,
     loadAuditData,
+    handleImageError,
     // 搜索与筛选
     searchQuery,
     selectedMaterial,

@@ -80,7 +80,7 @@
               <div class="preview-img">
                 <div class="scan-line"></div>
                 <div class="tech-border"></div>
-                <img :src="uploadedImageUrl || '../../assets/images/1.jpg'" alt="Preview" />
+                <img :src="uploadedImageUrl || defaultImage" alt="Preview" />
               </div>
               <div class="info-list" v-if="recognitionResult">
                 <div class="info-item">
@@ -90,6 +90,14 @@
                 <div class="info-item">
                   <span class="label">识别种类</span>
                   <span class="value">{{ recognitionResult.rubbishName }} ({{ recognitionResult.confidence }}%)</span>
+                </div>
+                <div class="info-item count-adjust-item">
+                  <span class="label">数量核对</span>
+                  <div class="count-stepper">
+                    <button class="step-btn" @click="adjustCount(-1)" :disabled="recognitionResult.count <= 1">-</button>
+                    <span class="count-display">{{ recognitionResult.count }}</span>
+                    <button class="step-btn" @click="adjustCount(1)">+</button>
+                  </div>
                 </div>
                 <div class="info-item">
                   <span class="label">预估重量</span>
@@ -267,7 +275,7 @@
                   </select>
                 </div>
 
-                <button class="btn-ghost btn-export">
+                <button class="btn-ghost btn-export" @click="exportCSV">
                   <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                   导出 CSV
                 </button>
@@ -295,8 +303,11 @@
                       </td>
                       <td>
                         <div class="thumb-wrapper" @click="previewImg(r.img)">
-                          <img :src="r.img" class="record-thumb" />
-                          <div class="overlay">
+                          <img v-if="!r.imgError" :src="r.img" class="record-thumb" @error="handleImageError($event, r)" />
+                          <div v-else class="img-error-placeholder">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                          </div>
+                          <div class="overlay" v-if="!r.imgError">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                           </div>
                         </div>
@@ -414,6 +425,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useCheckin } from './Checkin';
+import defaultImage from '../../assets/images/1.jpg';
 
 const fileInput = ref<HTMLInputElement | null>(null);
 
@@ -438,6 +450,7 @@ const {
     cancelScan,
     confirmCheckin,
     recognitionResult,
+    adjustCount,
     copyBatchNo,
     // 管理员
   activeTab,
@@ -445,6 +458,7 @@ const {
   qrCodeUrl,
   generateQR,
   downloadQR,
+  exportCSV,
   auditRecords,
   auditFilter,
   sectionTitle,
@@ -455,6 +469,7 @@ const {
   reject,
   previewImg,
   closePreview,
+  handleImageError,
   // 搜索与筛选
   searchQuery,
   selectedMaterial,

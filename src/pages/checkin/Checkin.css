@@ -203,6 +203,105 @@
   display: block;
 }
 
+/* 响应式样式 */
+@media (max-width: 768px) {
+  .checkin-view {
+    padding: 15px;
+  }
+
+  .time-display {
+    font-size: 2.2rem;
+  }
+
+  .greeting-area h2 {
+    font-size: 1.3rem;
+  }
+
+  .action-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .action-card {
+    height: 160px;
+    padding: 20px;
+  }
+
+  .icon-wrapper {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 10px;
+  }
+
+  .action-card .icon {
+    font-size: 2.2rem;
+  }
+
+  .action-card h3 {
+    font-size: 1.1rem;
+  }
+
+  .result-panel {
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+
+  .result-header h3 {
+    font-size: 1.1rem;
+  }
+}
+
+/* --- Count Stepper --- */
+.count-adjust-item {
+  align-items: center !important;
+}
+
+.count-stepper {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  padding: 4px;
+}
+
+.step-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  transition: all 0.2s;
+}
+
+.step-btn:hover:not(:disabled) {
+  background: var(--primary-color);
+  color: #000;
+}
+
+.step-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.count-display {
+  min-width: 40px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.info-item.count-adjust-item .label {
+  margin-bottom: 0;
+}
+
 .scan-line {
   position: absolute;
   top: 0;
@@ -843,6 +942,23 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.img-error-placeholder {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+}
+
+.img-error-placeholder svg {
+  opacity: 0.5;
 }
 
 .thumb-wrapper .overlay {

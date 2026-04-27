@@ -5,7 +5,7 @@ import TraceRecord from '../models/TraceRecord.js';
 import RecycleStation from '../models/RecycleStation.js';
 import User from '../models/User.js';
 import CheckinRecord from '../models/CheckinRecord.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -19,42 +19,32 @@ function calculateAchievement(weight, type = '') {
     
     // 默认配置 (塑料)
     let config = {
-        unit: '件',
-        product: '再生 T 恤',
-        ratio: 0.5, // 0.5kg/item
-        carbonFactor: 1.5, // 1kg 塑料约减少 1.5kg 碳排放
-        oilFactor: 2.0     // 1kg 塑料约节省 2L 石油
+        ratio: 1.2, // 1kg 塑料约守护 1.2㎡ 海域 (基于海滩清理覆盖率估算)
+        carbonFactor: 1.5,
+        oilFactor: 2.0
     };
 
-    if (wasteType.includes('纸') || wasteType.includes('paper')) {
+    if (wasteType.includes('纸')) {
         config = {
-            unit: '个',
-            product: '再生纸盒',
-            ratio: 0.2,
+            ratio: 0.8,
             carbonFactor: 0.9,
-            oilFactor: 0.5 // 纸张主要节省森林和水，这里映射为资源分值
+            oilFactor: 0.5
         };
-    } else if (wasteType.includes('金') || wasteType.includes('metal') || wasteType.includes('铝')) {
+    } else if (wasteType.includes('金') || wasteType.includes('铝')) {
         config = {
-            unit: '个',
-            product: '再生易拉罐',
-            ratio: 0.05,
-            carbonFactor: 9.0, // 金属回收节能极高
+            ratio: 2.5, // 金属回收价值更高，折算守护面积更大
+            carbonFactor: 9.0,
             oilFactor: 4.5
         };
-    } else if (wasteType.includes('玻') || wasteType.includes('glass')) {
+    } else if (wasteType.includes('玻')) {
         config = {
-            unit: '个',
-            product: '再生玻璃瓶',
-            ratio: 0.3,
+            ratio: 0.5,
             carbonFactor: 0.3,
             oilFactor: 0.2
         };
-    } else if (wasteType.includes('衣') || wasteType.includes('织') || wasteType.includes('textile')) {
+    } else if (wasteType.includes('衣') || wasteType.includes('织')) {
         config = {
-            unit: '块',
-            product: '环保再生抹布',
-            ratio: 0.1,
+            ratio: 1.0,
             carbonFactor: 3.5,
             oilFactor: 1.2
         };
@@ -64,9 +54,7 @@ function calculateAchievement(weight, type = '') {
     const numWeight = parseFloat(weight) || 0;
 
     return {
-        items: Math.max(1, Math.floor(numWeight / config.ratio)),
-        unit: config.unit,
-        product: config.product,
+        items: (numWeight * config.ratio).toFixed(1), // 改为计算守护面积
         carbon: (numWeight * config.carbonFactor).toFixed(2),
         oil: (numWeight * config.oilFactor).toFixed(2)
     };
@@ -127,24 +115,149 @@ router.get('/admin/list', authenticateToken, async (req, res) => {
 
         const records = await TraceRecord.findAll({
             include: [
-                { model: RecycleStation, as: 'station', attributes: ['name'] }
+                { model: RecycleStation, as: 'station', attributes: ['name'] },
+                { model: CheckinRecord, as: 'checkinRecord', attributes: ['imageUrl'] }
             ],
             order: [['createdAt', 'DESC']],
             limit,
             offset
         });
 
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+
         const list = records.map(r => ({
+            id: r.id,
             batchNo: r.batchNo,
             status: r.status,
-            weight: `${r.weight} kg`,
+            weight: r.weight,
+            wasteType: r.wasteType,
+            stationId: r.stationId,
+            userId: r.userId,
             stationName: r.station?.name || '未知站点',
-            hashDigest: r.hashDigest ? `${r.hashDigest.slice(0, 4)}...${r.hashDigest.slice(-4)}` : '-'
+            imageUrl: r.checkinRecord?.imageUrl ? `${baseUrl}${r.checkinRecord.imageUrl}` : '',
+            hashDigest: r.hashDigest ? `${r.hashDigest.slice(0, 4)}...${r.hashDigest.slice(-4)}` : '-',
+            createdAt: r.createdAt
         }));
 
         res.json({ success: true, data: list });
     } catch (error) {
         console.error('获取溯源列表失败:', error);
+        res.status(500).json({ success: false, message: '服务器内部错误' });
+    }
+});
+
+/**
+ * POST /api/trace/admin/create
+ * 创建溯源记录（管理员）
+ */
+router.post('/admin/create', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { weight, wasteType, stationId, userId, status } = req.body;
+        
+        const batchNo = await generateBatchNo();
+        const record = await TraceRecord.create({
+            batchNo,
+            weight: weight || 0,
+            wasteType: wasteType || '塑料瓶',
+            stationId: stationId || null,
+            userId: userId || req.user.userId,
+            status: status || 'completed',
+            createdAt: new Date()
+        });
+
+        // 生成哈希校验码
+        record.hashDigest = generateHashDigest(record);
+        await record.save();
+
+        res.json({ success: true, message: '创建成功', data: record });
+    } catch (error) {
+        console.error('创建溯源记录失败:', error);
+        res.status(500).json({ success: false, message: '服务器内部错误' });
+    }
+});
+
+/**
+ * PUT /api/trace/admin/update/:batchNo
+ * 更新溯源记录（管理员）
+ */
+router.put('/admin/update/:batchNo', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { batchNo } = req.params;
+        const { weight, wasteType, stationId, status } = req.body;
+
+        const record = await TraceRecord.findOne({ where: { batchNo } });
+        if (!record) {
+            return res.status(404).json({ success: false, message: '记录不存在' });
+        }
+
+        if (weight !== undefined) record.weight = weight;
+        if (wasteType !== undefined) record.wasteType = wasteType;
+        if (stationId !== undefined) record.stationId = stationId;
+        if (status !== undefined) record.status = status;
+
+        // 重新生成哈希校验码
+        record.hashDigest = generateHashDigest(record);
+        await record.save();
+
+        res.json({ success: true, message: '更新成功', data: record });
+    } catch (error) {
+        console.error('更新溯源记录失败:', error);
+        res.status(500).json({ success: false, message: '服务器内部错误' });
+    }
+});
+
+/**
+ * DELETE /api/trace/admin/delete/:batchNo
+ * 删除溯源记录（管理员）
+ */
+router.delete('/admin/delete/:batchNo', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { batchNo } = req.params;
+        const result = await TraceRecord.destroy({ where: { batchNo } });
+
+        if (result === 0) {
+            return res.status(404).json({ success: false, message: '记录不存在' });
+        }
+
+        res.json({ success: true, message: '删除成功' });
+    } catch (error) {
+        console.error('删除溯源记录失败:', error);
+        res.status(500).json({ success: false, message: '服务器内部错误' });
+    }
+});
+
+/**
+ * GET /api/trace/admin/export
+ * 导出溯源报表（管理员）
+ */
+router.get('/admin/export', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const records = await TraceRecord.findAll({
+            include: [
+                { model: RecycleStation, as: 'station', attributes: ['name'] },
+                { model: User, as: 'user', attributes: ['username'] }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        // 生成 CSV 内容
+        let csvContent = '\uFEFF'; // UTF-8 BOM
+        csvContent += '批次号,状态,回收物类型,重量(kg),来源站点,回收人,校验码,创建时间\n';
+
+        records.forEach(r => {
+            const statusText = r.status === 'completed' ? '已完成' : '处理中';
+            const stationName = r.station?.name || '未知站点';
+            const userName = r.user?.username || '未知';
+            const createdAt = r.createdAt.toLocaleString('zh-CN');
+            
+            csvContent += `"${r.batchNo}","${statusText}","${r.wasteType}",${r.weight},"${stationName}","${userName}","${r.hashDigest}","${createdAt}"\n`;
+        });
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename=traceability_report_${new Date().getTime()}.csv`);
+        res.send(csvContent);
+    } catch (error) {
+        console.error('导出报表失败:', error);
         res.status(500).json({ success: false, message: '服务器内部错误' });
     }
 });

@@ -1,6 +1,10 @@
 import { reactive, ref } from 'vue';
 import axios from 'axios';
-import { changePassword as authChangePassword, getMe, updateProfile as authUpdateProfile } from '../../api/auth';
+import { 
+  changePassword as authChangePassword, 
+  getMe, 
+  updateProfile as authUpdateProfile
+} from '../../api/auth';
 import { store } from '../../stores';
 
 function axiosErrText(error: unknown): string {
@@ -14,10 +18,18 @@ function axiosErrText(error: unknown): string {
 export const isSaving = ref(false);
 export const isChangingPassword = ref(false);
 
+export const activeTab = ref('profile'); // 'profile', 'security', 'preferences'
+
 export const form = reactive({
   name: '',
   avatar: '',
-  bio: ''
+  bio: '',
+  // 扩展字段
+  username: '',
+  role: '',
+  points: 0,
+  gender: 'secret', // 'male', 'female', 'secret'
+  location: ''
 });
 
 export const passwordForm = reactive({
@@ -33,6 +45,9 @@ function applyUserToForm() {
     form.name = store.user.name || '';
     form.avatar = store.user.avatar || '';
     form.bio = store.user.bio || '';
+    form.username = store.user.username || '';
+    form.role = store.user.role || '';
+    form.points = store.user.points || 0;
   }
 }
 

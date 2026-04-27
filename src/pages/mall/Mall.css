@@ -659,10 +659,210 @@
   gap: 20px;
 }
 
-@media (max-width: 600px) {
-  .form-row {
-    grid-template-columns: 1fr;
+@media (max-width: 768px) {
+  .mall-view {
+    padding: 15px;
+  }
+
+  .header-section {
+    flex-direction: column;
+    align-items: flex-start;
     gap: 15px;
+  }
+
+  .user-points-pill {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .hero-section {
+    padding: 20px;
+    flex-direction: column-reverse;
+    text-align: center;
+    gap: 20px;
+  }
+
+  .hero-content {
+    max-width: 100%;
+  }
+
+  .hero-content h2 {
+    font-size: 1.8rem;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .hero-image {
+    display: none; /* 移动端隐藏大图以节省空间 */
+  }
+
+  .browse-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .filter-bar {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filter-pill {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr); /* 双列布局更紧凑 */
+    gap: 12px;
+  }
+
+  .card-image-wrapper {
+    height: 180px; /* 减小图片高度，从长方形向正方形靠近 */
+  }
+
+  .product-title {
+    font-size: 0.9rem;
+    height: 2.4em;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .card-content {
+    padding: 10px;
+  }
+
+  .card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .points-cost {
+    font-size: 1rem;
+  }
+
+  .redeem-btn-small {
+    width: 100%;
+    justify-content: center;
+    padding: 8px;
+  }
+
+  /* 管理员视图适配 */
+  .admin-tabs {
+    width: 100%;
+    overflow-x: auto;
+    display: flex;
+    gap: 10px;
+    padding-bottom: 5px;
+  }
+
+  .tab-btn {
+    white-space: nowrap;
+    padding: 8px 12px;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 10px 8px;
+    font-size: 0.8rem;
+  }
+
+  /* 管理员表格转为卡片布局以适配移动端 */
+  .admin-table, 
+  .admin-table thead, 
+  .admin-table tbody, 
+  .admin-table th, 
+  .admin-table td, 
+  .admin-table tr { 
+    display: block; 
+  }
+
+  .admin-table thead {
+    display: none; /* 隐藏表头 */
+  }
+
+  .admin-table tbody tr {
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .admin-table td {
+    padding: 0 !important;
+    text-align: left !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .admin-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #888;
+    font-size: 0.85rem;
+  }
+
+  /* 针对商品单元格的特殊处理 */
+  .product-cell {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    width: auto;
+  }
+
+  .product-cell .icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* 操作按钮组在移动端平铺 */
+  .admin-table td:last-child {
+    margin-top: 10px;
+    padding-top: 15px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .admin-table td:last-child::before {
+    display: none; /* 操作栏不需要左侧标签 */
+  }
+
+  .btn-sm {
+    margin: 0;
+    flex: 1;
+    min-width: 70px;
+    padding: 8px 4px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .status-tag {
+    margin-left: auto;
+  }
+
+  .product-cell {
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
   }
 }
 

@@ -201,6 +201,71 @@
   cursor: pointer;
 }
 
+/* 响应式样式 */
+@media (max-width: 768px) {
+  .map-view {
+    padding: 15px;
+    height: calc(100vh - 80px); /* 减去顶部导航条高度 */
+    overflow-y: auto;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .action-buttons {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .action-buttons button {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  /* 表格在移动端改为可滚动 */
+  .modal.wide-modal .modal-body {
+    padding: 15px;
+    overflow-x: auto;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 12px 10px;
+    font-size: 13px;
+  }
+
+  .map-layout {
+    grid-template-columns: 1fr !important;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .map-container {
+    height: 400px; /* 移动端给地图一个固定高度 */
+    min-height: 300px;
+    flex: none;
+  }
+
+  .info-panel {
+    height: 350px; /* 列表也给一个高度，防止撑开太长 */
+    flex: none;
+  }
+
+  .map-search-bar {
+    left: 10px;
+    right: 10px;
+    top: 10px;
+  }
+
+  .map-search-bar input {
+    width: 100%;
+  }
+}
+
 .btn-info {
   background: #1890ff;
   color: white;
@@ -579,4 +644,41 @@
   border-color: #faad14;
   color: #faad14;
   box-shadow: 0 0 10px rgba(250, 173, 20, 0.2);
+}
+
+.picking-tip, .nav-tip {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(10, 25, 41, 0.9);
+  padding: 10px 20px;
+  border-radius: 30px;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  color: #00e5ff;
+  font-weight: 500;
+  animation: slideDown 0.3s ease-out;
+}
+
+.nav-tip {
+  border-color: rgba(255, 71, 87, 0.5);
+  color: #ff4757;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translate(-50%, -20px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
 }

@@ -14,6 +14,8 @@ const Client = ImageRecogSDK.default || ImageRecogSDK;
 const Config = OpenApiSDK.Config;
 const RuntimeOptions = UtilSDK.RuntimeOptions;
 const ClassifyingRubbishAdvanceRequest = ImageRecogSDK.ClassifyingRubbishAdvanceRequest;
+const DetectObjectAdvanceRequest = ImageRecogSDK.DetectObjectAdvanceRequest;
+const CountItemAdvanceRequest = ImageRecogSDK.CountItemAdvanceRequest;
 
 export default class AliyunClassifier {
   /**
@@ -73,6 +75,62 @@ export default class AliyunClassifier {
       if (error.code === 'InvalidAccessKeyId.NotFound' || error.code === 'SignatureDoesNotMatch') {
         throw new Error('阿里云 AccessKey 配置错误，请检查环境变量。');
       }
+      throw error;
+    }
+  }
+
+  /**
+   * 目标检测 - 识别图片中的物体并计数
+   * @param {string} filePath 本地图片文件路径
+   * @returns {Promise<object>} 检测结果
+   */
+  static async detectObject(filePath) {
+    let client = AliyunClassifier.createClient();
+    let imageStream = fs.createReadStream(filePath);
+
+    let detectObjectRequest = new DetectObjectAdvanceRequest({
+      imageURLObject: imageStream,
+    });
+
+    let runtime = new RuntimeOptions({
+      readTimeout: 30000,
+      connectTimeout: 10000,
+    });
+
+    try {
+      let response = await client.detectObjectAdvance(detectObjectRequest, runtime);
+      console.log('Aliyun DetectObject Response:', JSON.stringify(response.body, null, 2));
+      return response.body;
+    } catch (error) {
+      console.error('Aliyun Object Detection Error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 物品计数 - 识别并统计图片中特定物品的数量
+   * @param {string} filePath 本地图片文件路径
+   * @returns {Promise<object>} 计数结果
+   */
+  static async countItem(filePath) {
+    let client = AliyunClassifier.createClient();
+    let imageStream = fs.createReadStream(filePath);
+
+    let countItemRequest = new CountItemAdvanceRequest({
+      imageURLObject: imageStream,
+    });
+
+    let runtime = new RuntimeOptions({
+      readTimeout: 30000,
+      connectTimeout: 10000,
+    });
+
+    try {
+      let response = await client.countItemAdvance(countItemRequest, runtime);
+      console.log('Aliyun CountItem Response:', JSON.stringify(response.body, null, 2));
+      return response.body;
+    } catch (error) {
+      console.error('Aliyun CountItem Error:', error);
       throw error;
     }
   }

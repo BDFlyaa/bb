@@ -14,6 +14,7 @@ import {
   unlikePost,
   updateTask
 } from '../../api/community';
+import { getUserProfile } from '../../api/auth';
 import { store } from '../../stores';
 
 // 定义接口类型
@@ -52,11 +53,56 @@ interface Rank {
   weight: number;
 }
 
+interface UserProfile {
+  username: string;
+  name: string;
+  avatar: string;
+  bio: string;
+  points: number;
+  role: string;
+  createdAt?: string;
+}
+
 // 状态控制
 export const tasks = ref<Task[]>([]);
 export const feed = ref<Post[]>([]);
 export const rankings = ref<Rank[]>([]);
 export const isLoading = ref(true);
+
+// 用户资料预览
+export const selectedUserProfile = ref<UserProfile | null>(null);
+export const isProfileLoading = ref(false);
+export const showProfileModal = ref(false);
+
+export const openUserProfile = async (username: string) => {
+  isProfileLoading.value = true;
+  showProfileModal.value = true;
+  try {
+    const data = await getUserProfile(username);
+    selectedUserProfile.value = {
+      username: data.username,
+      name: data.name || data.nickname || data.username,
+      avatar: data.avatar || '',
+      bio: data.bio || '这个人很懒，还没有写简介...',
+      points: data.points || 0,
+      role: data.role === 'system_admin' ? '管理员' : '志愿者',
+      createdAt: (data as any).createdAt
+    };
+  } catch (error) {
+    console.error('获取用户资料失败:', error);
+    showToast('无法获取该用户资料', 'error');
+    showProfileModal.value = false;
+  } finally {
+    isProfileLoading.value = false;
+  }
+};
+
+export const closeUserProfile = () => {
+  showProfileModal.value = false;
+  setTimeout(() => {
+    selectedUserProfile.value = null;
+  }, 300);
+};
 
 // Toast 状态
 export const toast = ref({

@@ -55,6 +55,15 @@
           <button class="btn-ghost btn-sm" @click="cancelPicking">取消</button>
         </div>
 
+        <!-- Navigation Tip -->
+        <div v-if="isNavigating" class="nav-tip">
+          <span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+            正在导航中...
+          </span>
+          <button class="btn-danger btn-sm" @click="stopNav">退出导航</button>
+        </div>
+
         <!-- Search Bar Overlay -->
         <div class="map-search-bar" v-if="!loading">
           <input 
@@ -93,6 +102,10 @@
                 <button class="btn-link" @click.stop="startNav(s)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
                   导航
+                </button>
+                <button class="btn-link" @click.stop="openExternalMap(s)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                  外部
                 </button>
                 <button class="btn-link warning" @click.stop="reportFull(s)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>

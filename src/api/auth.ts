@@ -42,6 +42,10 @@ export function getMe() {
   return request.get<any, AuthUserPayload>('/auth/me');
 }
 
+export function getUserProfile(username: string) {
+  return request.get<any, AuthUserPayload>(`/auth/profile/${username}`);
+}
+
 export interface UpdateProfileBody {
   nickname: string;
   bio: string;
@@ -65,3 +69,4 @@ export interface ChangePasswordBody {
 export function changePassword(body: ChangePasswordBody) {
   return request.patch<any, { message: string }>('/auth/password', body);
 }
+

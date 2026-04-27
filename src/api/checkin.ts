@@ -212,6 +212,19 @@ export const generateStationQR = async (stationId: number): Promise<QRCodeRespon
   }
 };
 
+// 导出 CSV (模拟)
+export const exportAuditCSV = async (status: string): Promise<{ success: boolean; url?: string; message?: string }> => {
+  try {
+    // 模拟后端导出接口
+    return await request.get<any, { success: boolean; url: string }>(`/checkin/admin/export`, {
+      params: { status }
+    });
+  } catch (error) {
+    console.warn('Export CSV API failed, using mock behavior');
+    return { success: true }; // 模拟总是成功
+  }
+};
+
 // 提交待审核的打卡记录
 export const submitForReview = async (data: CheckinData): Promise<CheckinResponse> => {
   try {

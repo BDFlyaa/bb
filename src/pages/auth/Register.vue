@@ -79,7 +79,8 @@ const handleRegister = async () => {
   position: relative; 
 }
 .auth-card { 
-  width: 350px; 
+  width: 90%; 
+  max-width: 350px; 
   padding: 2rem; 
   text-align: center; 
 }

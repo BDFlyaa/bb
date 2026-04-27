@@ -130,7 +130,7 @@
           </thead>
           <tbody>
             <tr v-for="item in items" :key="item.id">
-              <td>
+              <td data-label="商品">
                 <div class="product-cell">
                   <div class="icon">
                     <img v-if="item.icon && (item.icon.startsWith('data:image') || item.icon.startsWith('http'))" :src="item.icon" style="width:100%; height:100%; object-fit:cover; border-radius:4px;" alt="icon">
@@ -139,14 +139,14 @@
                   <span>{{ item.name }}</span>
                 </div>
               </td>
-              <td>{{ item.points }}</td>
-              <td>{{ item.inventory }}</td>
-              <td>
+              <td data-label="积分价格">{{ item.points }}</td>
+              <td data-label="库存">{{ item.inventory }}</td>
+              <td data-label="状态">
                 <span :class="['status-tag', item.status === 'inactive' ? 'danger' : (item.inventory > 0 ? 'success' : 'warning')]">
                   {{ item.status === 'inactive' ? '已下架' : (item.inventory > 0 ? '销售中' : '已售罄') }}
                 </span>
               </td>
-              <td>
+              <td data-label="操作">
                 <button class="btn-sm btn-info" @click="editProduct(item)">修改价格</button>
                 <button 
                   :class="['btn-sm', item.status === 'inactive' ? 'btn-success' : 'btn-warning']" 
@@ -176,12 +176,12 @@
           </thead>
           <tbody>
             <tr v-for="order in mockOrders" :key="order.id">
-              <td>{{ order.id }}</td>
-              <td>{{ order.user }}</td>
-              <td>{{ order.item }}</td>
-              <td>{{ order.time }}</td>
-              <td><span :class="['status-tag', order.status]">{{ order.statusText }}</span></td>
-              <td>
+              <td data-label="订单号">{{ order.id }}</td>
+              <td data-label="兑换用户">{{ order.user }}</td>
+              <td data-label="礼品内容">{{ order.item }}</td>
+              <td data-label="下单时间">{{ order.time }}</td>
+              <td data-label="状态"><span :class="['status-tag', order.status]">{{ order.statusText }}</span></td>
+              <td data-label="操作">
                 <button class="btn-sm btn-info" @click="viewOrderDetails(order)">详情</button>
                 <button v-if="order.status === 'pending'" class="btn-sm btn-success" @click="shipOrder(order)">发货</button>
                 <button v-if="order.status === 'pending'" class="btn-sm btn-danger" @click="cancelOrder(order)">取消</button>

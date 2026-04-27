@@ -1,5 +1,16 @@
 /* src/style.css */
 :root {
+  /* Box sizing reset */
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+:root {
   /* Colors */
   --primary-color: #00e5ff;
   --secondary-color: #00b4db;

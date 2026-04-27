@@ -175,10 +175,10 @@
             <div class="rank-list">
               <div v-for="(rank, index) in logic.rankings.value" :key="rank.id" class="rank-item">
                 <div class="rank-num" :class="`top-${index + 1}`">{{ index + 1 }}</div>
-                <div class="rank-avatar">
+                <div class="rank-avatar" @click="logic.openUserProfile(rank.name)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </div>
-                <div class="rank-info">
+                <div class="rank-info" @click="logic.openUserProfile(rank.name)">
                   <div class="name">{{ rank.name }}</div>
                   <div class="role">志愿者</div>
                 </div>
@@ -325,32 +325,87 @@
     </div>
     </div>
 
-    <!-- 图片预览遮罩 -->
-    <div v-if="logic.previewImage.value.show" class="image-preview-overlay" @click="logic.closeImagePreview">
-      <div class="preview-container" @click.stop>
-        <img :src="logic.previewImage.value.url" />
-        <div class="close-preview" @click="logic.closeImagePreview">×</div>
+    <!-- 用户资料预览弹窗 -->
+    <div v-if="logic.showProfileModal.value" class="modal-overlay profile-modal-overlay" @click="logic.closeUserProfile">
+      <div class="glass-panel profile-preview-card fade-in" @click.stop>
+        <div v-if="logic.isProfileLoading.value" class="modal-loading">
+          <span class="btn-spinner"></span>
+          <p>正在获取资料...</p>
+        </div>
+        <div v-else-if="logic.selectedUserProfile.value" class="profile-preview-content">
+          <button class="modal-close-btn" @click="logic.closeUserProfile">×</button>
+          
+          <div class="profile-preview-header">
+            <div class="preview-avatar">
+              <img v-if="logic.selectedUserProfile.value.avatar" :src="logic.selectedUserProfile.value.avatar" alt="Avatar" />
+              <div v-else class="preview-avatar-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </div>
+            </div>
+            <div class="preview-info">
+              <h3 class="preview-name">{{ logic.selectedUserProfile.value.name }}</h3>
+              <div class="preview-badges">
+                <span class="preview-role-badge">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  {{ logic.selectedUserProfile.value.role }}
+                </span>
+                <span class="preview-points-badge">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                  {{ logic.selectedUserProfile.value.points }} 积分
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-preview-body">
+            <div class="preview-section">
+              <label>个人简介</label>
+              <p class="preview-bio">{{ logic.selectedUserProfile.value.bio }}</p>
+            </div>
+            <div class="preview-section-grid">
+              <div class="preview-section">
+                <label>加入时间</label>
+                <p>{{ logic.formatTime(logic.selectedUserProfile.value.createdAt) }}</p>
+              </div>
+              <div class="preview-section">
+                <label>用户名</label>
+                <p>@{{ logic.selectedUserProfile.value.username }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-preview-footer">
+            <button class="btn-primary full-width" @click="logic.closeUserProfile">返回社区</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 统一 Toast 提示 -->
-    <Transition name="fade">
-      <div v-if="logic.toast.value.show" class="toast-message" :class="logic.toast.value.type">
-        {{ logic.toast.value.message }}
+    <!-- 图片预览弹窗 -->
+    <div v-if="logic.previewImage.value.show" class="image-preview-overlay" @click="logic.closeImagePreview">
+      <div class="image-wrapper">
+        <img :src="logic.previewImage.value.url" />
+        <span class="close-btn" @click="logic.closeImagePreview">×</span>
       </div>
-    </Transition>
+    </div>
 
-    <!-- 统一 确认弹窗 -->
+    <!-- Toast 提示 -->
+    <div v-if="logic.toast.value.show" class="toast-container" :class="logic.toast.value.type">
+      <div class="toast-content">
+        <span class="toast-icon">
+          <svg v-if="logic.toast.value.type === 'success'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          <svg v-else-if="logic.toast.value.type === 'error'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+        </span>
+        <span class="toast-message">{{ logic.toast.value.message }}</span>
+      </div>
+    </div>
+
+    <!-- 确认弹窗 -->
     <div v-if="logic.modal.value.show" class="modal-overlay" @click="logic.closeModal">
       <div class="glass-panel modal-card" @click.stop>
-        <div class="modal-header">
-          <h3>{{ logic.modal.value.title }}</h3>
-          <span class="close-btn" @click="logic.closeModal">×</span>
-        </div>
-        <div class="modal-body">
-          <p>{{ logic.modal.value.message }}</p>
-        </div>
-        <div class="modal-footer">
+        <h3>{{ logic.modal.value.title }}</h3>
+        <p>{{ logic.modal.value.message }}</p>
+        <div class="modal-actions">
           <button class="btn-ghost" @click="logic.closeModal">取消</button>
           <button class="btn-primary" @click="logic.confirmModal">确定</button>
         </div>

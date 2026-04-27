@@ -1,8 +1,8 @@
 import { ref, computed } from 'vue';
 import { store } from '../../stores';
-import axios from 'axios';
+import request from '../../utils/request';
 
-const API_URL = 'http://localhost:3000/api/mall';
+const API_URL = '/mall';
 
 const isAdmin = computed(() => store.isAdmin);
 
@@ -11,6 +11,34 @@ const showMyOrders = ref(false);
 const pendingOrders = ref(0);
 const activeFilter = ref('all');
 const isLoading = ref(false);
+
+const showAddProductModal = ref(false);
+const showConfirmModal = ref(false);
+const confirmData = ref({
+  title: '',
+  message: '',
+  type: 'warning',
+  action: null as (() => Promise<void>) | null
+});
+
+const isSubmitting = ref(false);
+const previewImage = ref('');
+
+const productForm = ref({
+  name: '',
+  points: 100,
+  icon: '🎁',
+  description: '',
+  category: 'other',
+  inventory: 10
+});
+
+const formErrors = ref({
+  name: '',
+  points: '',
+  icon: '',
+  inventory: ''
+});
 
 // 商品数据（从后端获取）
 const items = ref<any[]>([]);
@@ -32,9 +60,8 @@ const fetchProducts = async () => {
   try {
     isLoading.value = true;
     const url = isAdmin.value ? `${API_URL}/admin/products` : `${API_URL}/products`;
-    const headers = store.token ? { Authorization: `Bearer ${store.token}` } : {};
-    const response = await axios.get(url, { headers });
-    items.value = response.data;
+    const response = await request.get<any, any>(url);
+    items.value = response;
   } catch (error) {
     console.error('获取商品失败:', error);
   } finally {
@@ -46,10 +73,8 @@ const fetchProducts = async () => {
 const fetchOrders = async () => {
   if (!store.token) return;
   try {
-    const response = await axios.get(`${API_URL}/orders`, {
-      headers: { Authorization: `Bearer ${store.token}` }
-    });
-    myOrders.value = response.data.map((order: any) => ({
+    const response = await request.get<any, any>(`${API_URL}/orders`);
+    myOrders.value = response.map((order: any) => ({
       id: order.id,
       name: order.productName,
       icon: order.productIcon,
@@ -66,10 +91,8 @@ const fetchOrders = async () => {
 const fetchAdminOrders = async () => {
   if (!store.token || !isAdmin.value) return;
   try {
-    const response = await axios.get(`${API_URL}/admin/orders`, {
-      headers: { Authorization: `Bearer ${store.token}` }
-    });
-    mockOrders.value = response.data.map((order: any) => ({
+    const response = await request.get<any, any>(`${API_URL}/admin/orders`);
+    mockOrders.value = response.map((order: any) => ({
       id: `ORD-${String(order.id).padStart(3, '0')}`,
       orderId: order.id,
       user: order.user?.username || '未知用户',
@@ -177,11 +200,9 @@ const submitRedeem = async () => {
 
     isSubmitting.value = true;
     try {
-        await axios.post(`${API_URL}/redeem/${item.id}`, {
+        await request.post(`${API_URL}/redeem/${item.id}`, {
             address: fullAddress,
             phone: redeemForm.value.phone
-        }, {
-            headers: { Authorization: `Bearer ${store.token}` }
         });
 
         // 更新本地积分
@@ -209,9 +230,7 @@ const submitRedeem = async () => {
 
 const shipOrder = async (order: any) => {
   try {
-    await axios.put(`${API_URL}/admin/orders/${order.orderId}/ship`, {}, {
-      headers: { Authorization: `Bearer ${store.token}` }
-    });
+    await request.put(`${API_URL}/admin/orders/${order.orderId}/ship`, {});
     order.status = 'shipped';
     order.statusText = '已发货';
     pendingOrders.value--;
@@ -230,9 +249,7 @@ const unshipOrder = async (order: any) => {
     type: 'warning',
     action: async () => {
       try {
-        await axios.put(`${API_URL}/admin/orders/${order.orderId}/unship`, {}, {
-          headers: { Authorization: `Bearer ${store.token}` }
-        });
+        await request.put(`${API_URL}/admin/orders/${order.orderId}/unship`, {});
         order.status = 'pending';
         order.statusText = '待发货';
         pendingOrders.value++;
@@ -254,9 +271,7 @@ const cancelOrder = async (order: any) => {
     type: 'warning',
     action: async () => {
       try {
-        await axios.put(`${API_URL}/admin/orders/${order.orderId}/cancel`, {}, {
-          headers: { Authorization: `Bearer ${store.token}` }
-        });
+        await request.put(`${API_URL}/admin/orders/${order.orderId}/cancel`, {});
         order.status = 'cancelled';
         order.statusText = '已取消';
         if (order.status === 'pending') {
@@ -283,34 +298,6 @@ const closeOrderDetailsModal = () => {
     showOrderDetailsModal.value = false;
     currentOrder.value = null;
 };
-
-const showAddProductModal = ref(false);
-const showConfirmModal = ref(false);
-const confirmData = ref({
-  title: '',
-  message: '',
-  type: 'warning',
-  action: null as (() => Promise<void>) | null
-});
-
-const isSubmitting = ref(false);
-const previewImage = ref('');
-
-const productForm = ref({
-  name: '',
-  points: 100,
-  icon: '🎁',
-  description: '',
-  category: 'other',
-  inventory: 10
-});
-
-const formErrors = ref({
-  name: '',
-  points: '',
-  icon: '',
-  inventory: ''
-});
 
 // 处理文件选择
 const handleFileChange = (event: Event) => {
@@ -352,7 +339,7 @@ const submitProduct = async () => {
     isValid = false;
   }
 
-  if (!productForm.value.inventory && productForm.value.inventory !== 0) {
+  if (productForm.value.inventory < 0) {
     formErrors.value.inventory = '库存不能为负数';
     isValid = false;
   }
@@ -370,9 +357,7 @@ const submitProduct = async () => {
       icon: previewImage.value // 只使用上传的图片，忽略 productForm.icon
     };
 
-    await axios.post(`${API_URL}/products`, submitData, {
-      headers: { Authorization: `Bearer ${store.token}` }
-    });
+    await request.post(`${API_URL}/products`, submitData);
     
     
     showAddProductModal.value = false;
@@ -450,11 +435,9 @@ const submitEditProduct = async () => {
     
     isSubmitting.value = true;
     try {
-        await axios.put(`${API_URL}/products/${editProductForm.value.id}`, {
+        await request.put(`${API_URL}/products/${editProductForm.value.id}`, {
             points: Number(editProductForm.value.points),
             inventory: Number(editProductForm.value.inventory)
-        }, {
-            headers: { Authorization: `Bearer ${store.token}` }
         });
         
         // Update local item
@@ -482,9 +465,7 @@ const deleteProduct = async (item: any) => {
     type: 'warning',
     action: async () => {
       try {
-        await axios.delete(`${API_URL}/products/${item.id}`, {
-          headers: { Authorization: `Bearer ${store.token}` }
-        });
+        await request.delete(`${API_URL}/products/${item.id}`);
         
         // 从列表中移除
         items.value = items.value.filter((i: any) => i.id !== item.id);
@@ -536,18 +517,14 @@ const toggleStatus = async (item: any) => {
         console.log(`Executing ${actionText} action...`);
         if (isInactive) {
           // 重新上架逻辑
-          await axios.put(`${API_URL}/products/${item.id}`, {
+          await request.put(`${API_URL}/products/${item.id}`, {
             status: 'active'
-          }, {
-            headers: { Authorization: `Bearer ${store.token}` }
           });
           item.status = 'active';
         } else {
           // 下架逻辑
-          await axios.put(`${API_URL}/products/${item.id}`, {
+          await request.put(`${API_URL}/products/${item.id}`, {
             status: 'inactive'
-          }, {
-            headers: { Authorization: `Bearer ${store.token}` }
           });
           item.status = 'inactive';
         }
