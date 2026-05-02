@@ -133,7 +133,7 @@ router.get('/admin/list', authenticateToken, async (req, res) => {
             wasteType: r.wasteType,
             stationId: r.stationId,
             userId: r.userId,
-            stationName: r.station?.name || '未知站点',
+            stationName: r.sourceName || r.station?.name || '非官方点位 (个人清理)',
             imageUrl: r.checkinRecord?.imageUrl ? `${baseUrl}${r.checkinRecord.imageUrl}` : '',
             hashDigest: r.hashDigest ? `${r.hashDigest.slice(0, 4)}...${r.hashDigest.slice(-4)}` : '-',
             createdAt: r.createdAt
@@ -246,7 +246,7 @@ router.get('/admin/export', authenticateToken, requireAdmin, async (req, res) =>
 
         records.forEach(r => {
             const statusText = r.status === 'completed' ? '已完成' : '处理中';
-            const stationName = r.station?.name || '未知站点';
+            const stationName = r.station?.name || '非官方点位 (个人清理)';
             const userName = r.user?.username || '未知';
             const createdAt = r.createdAt.toLocaleString('zh-CN');
             
@@ -306,7 +306,7 @@ router.get('/:batchNo', async (req, res) => {
                 status: record.status,
                 weight: record.weight,
                 type: record.wasteType,
-                stationName: record.station?.name || '未知站点',
+                stationName: record.sourceName || record.station?.name || '非官方点位 (个人清理)',
                 userName: record.user?.username || '匿名志愿者',
                 imageUrl: record.checkinRecord?.imageUrl ? `${baseUrl}${record.checkinRecord.imageUrl}` : '',
                 checkinTime: record.createdAt.toLocaleString('zh-CN'),

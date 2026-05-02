@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { store } from '../../stores';
+import { getStations, type Station } from '../../api/checkin';
 
 const isAdmin = computed(() => store.isAdmin);
 
@@ -11,6 +12,7 @@ const searchResult = ref<any>(null);
 
 // 管理员视图数据
 const traceList = ref<any[]>([]);
+const stations = ref<Station[]>([]);
 const isDialogOpen = ref(false);
 const isEditing = ref(false);
 const isImageViewerOpen = ref(false);
@@ -21,6 +23,17 @@ const currentRecord = ref<any>({
   stationId: null,
   status: 'completed'
 });
+
+const loadStations = async () => {
+  try {
+    const res = await getStations(true);
+    if (res.success) {
+      stations.value = res.data;
+    }
+  } catch (error) {
+    console.error('加载站点失败', error);
+  }
+};
 
 const openCreateDialog = () => {
   isEditing.value = false;
@@ -217,6 +230,7 @@ export {
   searchError,
   searchResult,
   traceList,
+  stations,
   isDialogOpen,
   isEditing,
   currentRecord,
@@ -228,6 +242,7 @@ export {
   handleSearch,
   handleImageError, // 导出错误处理函数
   fetchAdminList,
+  loadStations,
   viewImage,
   isImageViewerOpen,
   viewerImageUrl

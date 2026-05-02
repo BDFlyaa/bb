@@ -47,11 +47,24 @@ const seedData = async () => {
     }
     console.log('Ranking users created successfully!');
 
+    // 创建回收站点
+    const stations = await RecycleStation.bulkCreate([
+      { name: '湛山街道回收站', address: '青岛市市南区延安三路', lng: 120.37, lat: 36.06, status: 'normal' },
+      { name: '五四广场回收点', address: '青岛市市南区东海西路', lng: 120.38, lat: 36.06, status: 'normal' },
+      { name: '八大关环保站', address: '青岛市市南区正阳关路', lng: 120.35, lat: 36.05, status: 'normal' },
+      { name: '石老人海水浴场站', address: '青岛市崂山区海口路', lng: 120.47, lat: 36.10, status: 'normal' }
+    ]);
+    console.log('Recycle stations created successfully!');
+
     // 为每个用户创建打卡记录以记录回收重量
-    for (const { user, weight } of createdUsers) {
+    for (let i = 0; i < createdUsers.length; i++) {
+      const { user, weight } = createdUsers[i];
+      // 循环分配站点
+      const station = stations[i % stations.length];
+      
       await CheckinRecord.create({
         userId: user.id,
-        stationId: null,
+        stationId: station.id,
         type: '混合塑料',
         weight: weight,
         points: Math.floor(weight * 10),

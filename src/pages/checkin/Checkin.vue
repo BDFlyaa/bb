@@ -91,6 +91,19 @@
                   <span class="label">识别种类</span>
                   <span class="value">{{ recognitionResult.rubbishName }} ({{ recognitionResult.confidence }}%)</span>
                 </div>
+                <div class="info-item station-select-item">
+                  <span class="label">投放站点</span>
+                  <div class="select-wrapper">
+                    <select v-model="selectedAiStation">
+                      <option value="" disabled>请选择投放站点</option>
+                      <option v-for="s in stations" :key="s.id" :value="s.id.toString()">{{ s.name }}</option>
+                      <option value="other"> 非官方点位 (个人清理)</option>
+                    </select>
+                    <span class="arrow">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </span>
+                  </div>
+                </div>
                 <div class="info-item count-adjust-item">
                   <span class="label">数量核对</span>
                   <div class="count-stepper">
@@ -449,6 +462,8 @@ const {
     triggerScan,
     cancelScan,
     confirmCheckin,
+    selectedAiStation,
+    stations,
     recognitionResult,
     adjustCount,
     copyBatchNo,

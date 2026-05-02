@@ -190,9 +190,10 @@ export const rejectCheckin = async (id: number, reason?: string): Promise<{ succ
 };
 
 // 获取站点列表
-export const getStations = async (): Promise<StationsResponse> => {
+export const getStations = async (isAdmin = false): Promise<StationsResponse> => {
   try {
-    return await request.get<any, StationsResponse>('/checkin/admin/stations');
+    const url = isAdmin ? '/checkin/admin/stations' : '/checkin/stations';
+    return await request.get<any, StationsResponse>(url);
   } catch (error) {
     console.warn('Get stations failed, using mock data');
     return { success: true, data: [] };
@@ -255,6 +256,8 @@ export interface ClassifyRubbishResponse {
   data?: {
     sensitive: boolean;
     elements: RubbishItem[];
+    objectCount?: number;      // 智能识别到的物体数量
+    detectionDetails?: any[];  // 目标检测详细信息
   };
   requestId?: string;
   error?: string;

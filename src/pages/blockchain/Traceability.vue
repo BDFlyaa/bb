@@ -158,6 +158,13 @@
             <h3>{{ isEditing ? '编辑溯源记录' : '新增溯源记录' }}</h3>
             <div class="form-grid">
               <div class="form-item">
+                <label>来源站点</label>
+                <select v-model="currentRecord.stationId">
+                  <option :value="null">-- 非官方点位 (个人清理) --</option>
+                  <option v-for="s in stations" :key="s.id" :value="s.id">{{ s.name }}</option>
+                </select>
+              </div>
+              <div class="form-item">
                 <label>回收物类型</label>
                 <input type="text" v-model="currentRecord.wasteType" placeholder="如: 塑料瓶, 渔网" />
               </div>
@@ -210,6 +217,7 @@ import {
     searchError,
     searchResult,
     traceList,
+    stations,
     isDialogOpen,
     isEditing,
     currentRecord,
@@ -221,6 +229,7 @@ import {
     handleSearch,
     handleImageError,
     fetchAdminList,
+    loadStations,
     viewImage,
     isImageViewerOpen,
     viewerImageUrl
@@ -229,6 +238,7 @@ import {
 onMounted(() => {
   if (isAdmin.value) {
     fetchAdminList();
+    loadStations();
   }
 });
 </script>

@@ -298,6 +298,57 @@
   font-size: 1.1rem;
 }
 
+/* --- Station Select in AI Result --- */
+.station-select-item {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.select-wrapper select {
+  width: 100%;
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.95rem;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.select-wrapper select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.2);
+}
+
+.select-wrapper select option {
+  background: #1a2a3a;
+  color: #fff;
+}
+
+.select-wrapper .arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.select-wrapper select:focus + .arrow {
+  color: var(--primary-color);
+  transform: translateY(-50%) rotate(180deg);
+}
+
 .info-item.count-adjust-item .label {
   margin-bottom: 0;
 }

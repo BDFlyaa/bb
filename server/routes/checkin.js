@@ -26,7 +26,7 @@ if (!fs.existsSync(checkinImageDir)) {
  */
 function saveBase64Image(base64Data) {
     if (!base64Data || !base64Data.startsWith('data:image/')) {
-        return base64Data; // 如果不是 base64 图片，直接返回原值
+        return base64Data; // 如果不是 base64 图片，直接返回原样
     }
 
     try {
@@ -92,7 +92,7 @@ router.get('/history', authenticateToken, async (req, res) => {
         const userId = req.user.userId;
         const limit = parseInt(req.query.limit) || 20;
 
-        // 动态设置 CheckinRecord 和 TraceRecord 的关联
+        // 动态设置 CheckinRecord 与 TraceRecord 的关系
         if (!CheckinRecord.associations.traceRecord) {
             CheckinRecord.hasOne(TraceRecord, { foreignKey: 'checkinRecordId', as: 'traceRecord' });
         }
@@ -135,7 +135,7 @@ router.get('/history', authenticateToken, async (req, res) => {
 // 提交打卡记录（智能审核分流）
 router.post('/', authenticateToken, async (req, res) => {
     try {
-        const { type, weight, points, imageUrl, stationId, confidence } = req.body;
+        const { type, weight, points, imageUrl, stationId, stationName, confidence } = req.body;
         const userId = req.user.userId;
 
         // 基础验证
@@ -144,7 +144,7 @@ router.post('/', authenticateToken, async (req, res) => {
         }
 
         if (!userId) {
-            console.error('错误: userId 为空！');
+            console.error('错误: userId 为空');
             return res.status(401).json({ success: false, message: '用户未登录' });
         }
 
@@ -277,6 +277,17 @@ router.post('/', authenticateToken, async (req, res) => {
                 });
                 const hashDigest = crypto.createHash('sha256').update(hashData).digest('hex');
 
+                // 确定来源点位名称
+                let resolvedSourceName = stationName || null;
+                if (!resolvedSourceName) {
+                    if (stationId) {
+                        const st = await RecycleStation.findByPk(stationId, { attributes: ['name'] });
+                        resolvedSourceName = st?.name || null;
+                    } else {
+                        resolvedSourceName = '非官方点位 (个人清理)';
+                    }
+                }
+
                 await TraceRecord.create({
                     batchNo,
                     checkinRecordId: record.id,
@@ -285,6 +296,7 @@ router.post('/', authenticateToken, async (req, res) => {
                     wasteType: type,
                     weight: weight || 0,
                     status: 'completed',
+                    sourceName: resolvedSourceName,
                     hashDigest
                 });
 
@@ -404,7 +416,7 @@ router.get('/admin/records', authenticateToken, requireAdmin, async (req, res) =
                 minute: '2-digit'
             }),
             points: record.points,
-            stationName: record.station?.name || '未知站点',
+            stationName: record.station?.name || '非官方点位 (个人清理)',
             status: record.status
         }));
 
@@ -460,7 +472,7 @@ router.get('/admin/pending', authenticateToken, requireAdmin, async (req, res) =
                 minute: '2-digit'
             }),
             points: record.points,
-            stationName: record.station?.name || '未知站点'
+            stationName: record.station?.name || '非官方点位 (个人清理)'
         }));
 
         res.json({
@@ -468,7 +480,7 @@ router.get('/admin/pending', authenticateToken, requireAdmin, async (req, res) =
             data: formattedRecords
         });
     } catch (error) {
-        console.error('获取待审核记录失败:', error);
+        console.error('获取待审核记录失败', error);
         res.status(500).json({ success: false, message: '服务器内部错误' });
     }
 });
@@ -526,6 +538,15 @@ router.post('/admin/approve/:id', authenticateToken, requireAdmin, async (req, r
             });
             const hashDigest = crypto.createHash('sha256').update(hashData).digest('hex');
 
+            // 确定来源点位名称
+            let resolvedSourceName = null;
+            if (record.stationId) {
+                const st = await RecycleStation.findByPk(record.stationId, { attributes: ['name'] });
+                resolvedSourceName = st?.name || null;
+            } else {
+                resolvedSourceName = '非官方点位 (个人清理)';
+            }
+
             await TraceRecord.create({
                 batchNo,
                 checkinRecordId: record.id,
@@ -534,6 +555,7 @@ router.post('/admin/approve/:id', authenticateToken, requireAdmin, async (req, r
                 wasteType: record.type,
                 weight: record.weight || 0,
                 status: 'completed',
+                sourceName: resolvedSourceName,
                 hashDigest
             });
 
@@ -603,6 +625,25 @@ router.get('/admin/stations', authenticateToken, requireAdmin, async (req, res) 
     }
 });
 
+// 获取所有回收站点列表（面向志愿者，用于AI识图选择）
+router.get('/stations', authenticateToken, async (req, res) => {
+    try {
+        const stations = await RecycleStation.findAll({
+            attributes: ['id', 'name', 'address', 'status'],
+            where: { status: 'normal' }, // 志愿者只能选择正常运行的站点
+            order: [['name', 'ASC']]
+        });
+
+        res.json({
+            success: true,
+            data: stations
+        });
+    } catch (error) {
+        console.error('获取志愿者站点列表失败', error);
+        res.status(500).json({ success: false, message: '服务器内部错误' });
+    }
+});
+
 // 生成站点二维码数据
 router.post('/admin/generate-qr', authenticateToken, requireAdmin, async (req, res) => {
     try {
@@ -637,7 +678,7 @@ router.post('/admin/generate-qr', authenticateToken, requireAdmin, async (req, r
             }
         });
     } catch (error) {
-        console.error('生成二维码失败:', error);
+        console.error('生成二维码失败', error);
         res.status(500).json({ success: false, message: '服务器内部错误' });
     }
 });

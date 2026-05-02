@@ -45,7 +45,7 @@ export function useCheckin() {
       if (res.success) {
         recentHistory.value = res.data.map((item: any) => ({
           id: item.id,
-          station: item.station?.name || '未知站点',
+          station: item.station?.name || '非官方点位 (个人清理)',
           type: item.type,
           points: item.points,
           time: new Date(item.createdAt).toLocaleString(),
@@ -61,12 +61,15 @@ export function useCheckin() {
   onMounted(() => {
     updateTime();
     timeTimer.value = setInterval(updateTime, 1000);
+    
+    // 无论是管理员还是志愿者，都加载站点列表（志愿者用于 AI 识图选择站点）
+    loadStations();
+
     if (!isAdmin.value) {
       loadHistory();
     } else {
       // 管理员加载审核数据
       loadAuditData();
-      loadStations();
     }
   });
 
@@ -103,6 +106,9 @@ export function useCheckin() {
     count: number;           // 物品数量
     originalRubbishName: string; // 原始垃圾名称（不含数量后缀）
   } | null>(null);
+
+  // AI 识图选择的站点
+  const selectedAiStation = ref<string>('');
 
   const adjustCount = (delta: number) => {
     if (!recognitionResult.value) return;
@@ -303,7 +309,18 @@ export function useCheckin() {
       return;
     }
 
+    if (!selectedAiStation.value) {
+      showToast('请选择投放站点', 'error');
+      return;
+    }
+
     const { category, rubbishName, estimatedWeight, points, confidence } = recognitionResult.value;
+
+    // 解析站点名称，用于前端显示和传递给后端存入溯源记录
+    let stationName = '非官方点位 (个人清理)';
+    if (selectedAiStation.value !== 'other') {
+      stationName = stations.value.find(s => s.id.toString() === selectedAiStation.value)?.name || '非官方点位 (个人清理)';
+    }
 
     try {
       const res = await submitCheckin({
@@ -311,7 +328,9 @@ export function useCheckin() {
         weight: estimatedWeight,
         points: points,
         imageUrl: uploadedImageUrl.value,
-        confidence: confidence // 传递置信度给后端
+        confidence: confidence, // 传递置信度给后端
+        stationId: selectedAiStation.value === 'other' ? null : selectedAiStation.value, // 传递站点 ID
+        stationName // 传递站点名称，供后端写入溢源记录
       });
 
       if (res.success) {
@@ -328,15 +347,17 @@ export function useCheckin() {
 
         aiResult.value = false;
         recognitionResult.value = null;
+        selectedAiStation.value = ''; // 重置选择
 
         // 添加记录
         recentHistory.value.unshift({
           id: Date.now(),
-          station: '智能识别终端',
+          station: stationName,
           type: `AI识别 (${rubbishName})`,
           points: res.status === 'approved' ? points : 0,
           time: '刚刚',
-          status: res.status === 'approved' ? 'success' : 'pending'
+          status: res.status === 'approved' ? 'success' : 'pending',
+          batchNo: res.record?.batchNo || null
         });
       } else {
         // 处理被拒绝的情况（置信度过低）
@@ -370,9 +391,16 @@ export function useCheckin() {
   const loadStations = async () => {
     isLoadingStations.value = true;
     try {
-      const res = await getStations();
+      const res = await getStations(isAdmin.value);
       if (res.success && res.data && res.data.length > 0) {
         stations.value = res.data;
+        
+        // 如果只有一个站点，且是志愿者模式，默认选择该站点（用于 AI 识图）
+        if (res.data.length === 1 && !isAdmin.value) {
+          selectedAiStation.value = res.data[0].id.toString();
+        }
+        
+        // 管理员模式下的默认选择
         const firstStation = res.data[0];
         if (firstStation) {
           selectedStation.value = firstStation.id.toString();
@@ -626,6 +654,7 @@ export function useCheckin() {
     triggerScan,
     cancelScan,
     confirmCheckin,
+    selectedAiStation,
     recognitionResult,
     adjustCount,
     // 管理员

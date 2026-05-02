@@ -228,7 +228,13 @@ router.get('/weekly-trend', async (req, res) => {
         // 构建日期到重量的映射
         const weightByDate = {};
         dailyStats.forEach(stat => {
-            const dateKey = stat.date;
+            // 确保 dateKey 是 YYYY-MM-DD 格式的字符串
+            let dateKey = stat.date;
+            if (dateKey instanceof Date) {
+                dateKey = dateKey.toISOString().slice(0, 10);
+            } else if (typeof dateKey === 'string' && dateKey.includes('T')) {
+                dateKey = dateKey.slice(0, 10);
+            }
             weightByDate[dateKey] = parseFloat(stat.totalWeight || 0);
         });
 
@@ -240,9 +246,13 @@ router.get('/weekly-trend', async (req, res) => {
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
             date.setDate(date.getDate() - i);
-            date.setHours(0, 0, 0, 0);
-
-            const dateKey = date.toISOString().slice(0, 10);
+            
+            // 使用本地日期格式 YYYY-MM-DD
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateKey = `${year}-${month}-${day}`;
+            
             days.push(weekdays[date.getDay()]);
             weights.push(parseFloat((weightByDate[dateKey] || 0).toFixed(2)));
         }
@@ -573,7 +583,7 @@ router.get('/export', authenticateToken, async (req, res) => {
         const rows = records.map(r => {
             const date = new Date(r.createdAt).toLocaleString('zh-CN');
             const user = r.user?.username || '匿名用户';
-            const station = r.station?.name || '未知站点';
+            const station = r.station?.name || '非官方点位 (个人清理)';
             // 转义包含逗号或引号的字段
             const escapeCsv = (val) => {
                 const str = String(val);
@@ -688,7 +698,7 @@ router.get('/station-ranking', async (req, res) => {
         });
 
         const ranking = stationStats.map(s => ({
-            name: s.station?.name || '未知站点',
+            name: s.station?.name || '非官方点位 (个人清理)',
             totalWeight: parseFloat(parseFloat(s.dataValues.totalWeight || 0).toFixed(1))
         }));
 

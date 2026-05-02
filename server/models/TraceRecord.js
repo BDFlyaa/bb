@@ -62,6 +62,11 @@ const TraceRecord = sequelize.define('TraceRecord', {
         type: DataTypes.STRING(64),
         allowNull: true,
         comment: 'SHA256 数据校验码',
+    },
+    sourceName: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        comment: '来源点位名称（官方站点名或非官方点位说明）',
     }
 }, {
     timestamps: true
