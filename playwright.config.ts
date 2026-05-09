@@ -13,11 +13,19 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
-      use: { 
+      name: 'desktop',
+      use: {
         ...devices['Desktop Chrome'],
         channel: 'msedge',
         viewport: { width: 1920, height: 1080 },
+      },
+    },
+    {
+      name: 'mobile',
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'msedge',
+        viewport: { width: 375, height: 812 },
       },
     },
   ],

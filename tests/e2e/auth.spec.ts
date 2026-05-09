@@ -126,15 +126,20 @@ test.describe('Auth Module', () => {
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/\/app\/stats/);
 
-    // 2. 执行退出操作
-    // 退出按钮在 Sidebar 中，类名为 .logout-btn
+    // 2. 移动端需要先展开汉堡菜单
+    const menuBtn = page.locator('.menu-toggle');
+    if (await menuBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await menuBtn.click();
+      await page.waitForTimeout(300);
+    }
+
+    // 3. 点击退出按钮
     await page.click('.logout-btn');
-    
-    // 3. 验证跳转
-    // MainLayout.vue 中 router.push('/')
-    await expect(page).toHaveURL(/\/$/); 
-    
-    // 验证本地存储已清除 (可选)
+
+    // 4. 验证跳转
+    await expect(page).toHaveURL(/\/$/);
+
+    // 验证本地存储已清除
     const token = await page.evaluate(() => localStorage.getItem('token'));
     expect(token).toBeNull();
   });

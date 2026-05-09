@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Map Module E2E', () => {
-  
+
+  test.beforeEach(async ({}, testInfo) => {
+    if (testInfo.project.name === 'mobile') test.skip();
+  });
+
   test('MAP-01: 志愿者申请新点位并反馈报错', async ({ page }) => {
     // 1. 登录
     await page.goto('/login');
