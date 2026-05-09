@@ -92,8 +92,8 @@ export const deleteTask = (taskId: number) => {
   return request.delete<any, { success: boolean; message: string }>(`/community/tasks/${taskId}`);
 };
 
-export const likePost = (postId: number) => {
-  return request.post<any, CommunityPost>(`/community/feed/${postId}/like`);
+export const likePost = (postId: number, username?: string) => {
+  return request.post<any, CommunityPost>(`/community/feed/${postId}/like`, { username });
 };
 
 export const unlikePost = (postId: number) => {

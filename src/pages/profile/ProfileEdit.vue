@@ -33,7 +33,7 @@
             <span class="stat-label">环保积分</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">LV.2</span>
+            <span class="stat-value">Lv.{{ userLevel }}</span>
             <span class="stat-label">当前等级</span>
           </div>
         </div>
@@ -166,6 +166,34 @@
             </div>
           </form>
         </div>
+
+        <!-- Email Binding Section -->
+        <div class="security-section">
+          <h4 class="section-title">绑定邮箱</h4>
+          <form @submit.prevent="bindEmail" class="password-form">
+            <div class="form-group">
+              <label>邮箱地址</label>
+              <div class="email-row">
+                <input type="email" v-model="emailForm.email" placeholder="请输入邮箱地址" required>
+                <button type="button" class="btn-secondary send-code-btn" :disabled="isSendingCode || codeCountdown > 0" @click="sendEmailCode">
+                  <span v-if="isSendingCode" class="btn-spinner"></span>
+                  <template v-else-if="codeCountdown > 0">重新发送 ({{ codeCountdown }}s)</template>
+                  <template v-else>发送验证码</template>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>验证码</label>
+              <input type="text" v-model="emailForm.code" required placeholder="请输入邮件中的6位验证码" maxlength="6">
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn-primary" :disabled="isBindingEmail">
+                <span class="btn-spinner" v-if="isBindingEmail"></span>
+                {{ isBindingEmail ? '绑定中...' : '确认绑定' }}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
       <!-- Tab: Preferences -->
@@ -184,7 +212,7 @@
               <span class="pref-desc">接收关于回收审核结果和系统动态的通知</span>
             </div>
             <label class="switch">
-              <input type="checkbox" checked>
+              <input type="checkbox" v-model="notificationEnabled">
               <span class="slider round"></span>
             </label>
           </div>
@@ -219,8 +247,10 @@
 import { onMounted, computed } from 'vue';
 import { 
   form, passwordForm, isSaving, isChangingPassword, activeTab,
-  saveProfile, changePassword, handleImageError, initProfile, 
-  fileInput, triggerFileInput, handleFileChange
+  saveProfile, changePassword, handleImageError, initProfile,
+  fileInput, triggerFileInput, handleFileChange,
+  emailForm, isSendingCode, isBindingEmail, codeCountdown,
+  sendEmailCode, bindEmail,
 } from './ProfileEdit';
 
 // Password strength computation
@@ -247,6 +277,28 @@ const passwordStrengthText = computed(() => {
   if (p <= 50) return '一般';
   if (p <= 75) return '良好';
   return '强';
+});
+
+// 通知偏好（双向绑定 store + localStorage）
+import { store as appStore } from '../../stores';
+const notificationEnabled = computed({
+  get: () => appStore.notificationEnabled,
+  set: (val) => {
+    appStore.notificationEnabled = val;
+    localStorage.setItem('notificationEnabled', String(val));
+  }
+});
+
+// 根据环保积分计算用户等级
+const userLevel = computed(() => {
+  const p = form.points || 0;
+  if (p < 500) return 1;
+  if (p < 1500) return 2;
+  if (p < 3000) return 3;
+  if (p < 5000) return 4;
+  if (p < 7500) return 5;
+  if (p < 10000) return 6;
+  return Math.floor(p / 5000) + 4;
 });
 
 onMounted(() => {

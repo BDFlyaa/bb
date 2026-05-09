@@ -70,6 +70,7 @@ const userStats = ref<UserStats>({
 });
 
 const loading = ref(false);
+const exporting = ref(false);
 
 const fetchData = async () => {
   loading.value = true;
@@ -131,7 +132,7 @@ const fetchData = async () => {
 };
 
 const initStatistics = () => {
-  setInterval(() => {
+  clockInterval = setInterval(() => {
     currentTime.value = new Date().toLocaleString();
   }, 1000);
   window.addEventListener('resize', handleResize);
@@ -161,6 +162,7 @@ const pieChartRef = ref<HTMLElement | null>(null);
 const trendChartRef = ref<HTMLElement | null>(null);
 let pieChartInstance: echarts.ECharts | null = null;
 let trendChartInstance: echarts.ECharts | null = null;
+let clockInterval: ReturnType<typeof setInterval> | null = null;
 
 const handleResize = () => {
   pieChartInstance?.resize();
@@ -173,6 +175,10 @@ const disposeCharts = () => {
   trendChartInstance?.dispose();
   pieChartInstance = null;
   trendChartInstance = null;
+  if (clockInterval) {
+    clearInterval(clockInterval);
+    clockInterval = null;
+  }
 };
 
 // Initialize and update charts
@@ -304,12 +310,13 @@ const getMedalIcon = (icon: string) => {
 
 // 导出 CSV 报表
 const handleExport = async () => {
+  exporting.value = true;
   try {
     const blob = await exportStats();
-    const url = window.URL.createObjectURL(new Blob([blob]));
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'recycle_report.csv');
+    link.setAttribute('download', `recycle_report_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -317,6 +324,8 @@ const handleExport = async () => {
   } catch (error) {
     console.error('导出失败:', error);
     alert('导出报表失败，请重试');
+  } finally {
+    exporting.value = false;
   }
 };
 
@@ -332,6 +341,7 @@ export {
   userStats,
   store,
   loading,
+  exporting,
   monthlyComparison,
   stationRanking,
   stationMaxWeight,

@@ -4,6 +4,7 @@ import sequelize from '../db.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -285,6 +286,16 @@ router.put('/admin/orders/:id/ship', authenticateToken, requireAdmin, async (req
         order.status = 'shipped';
         await order.save();
 
+        // 发送通知：订单已发货
+        Notification.create({
+            userId: order.userId,
+            type: 'order_shipped',
+            title: '订单已发货',
+            content: `您的订单 #${order.id}（${order.productName}）已发货，请留意收货`,
+            relatedId: order.id,
+            relatedType: 'order',
+        }).catch(e => console.error('创建发货通知失败:', e.original?.sqlMessage || e.message || e));
+
         res.json({ message: '订单已标记为发货', order });
     } catch (error) {
         console.error('处理订单失败:', error);
@@ -351,6 +362,17 @@ router.put('/admin/orders/:id/cancel', authenticateToken, requireAdmin, async (r
         await order.save({ transaction });
 
         await transaction.commit();
+
+        // 发送通知：订单已取消（不在事务内，失败不影响取消）
+        Notification.create({
+            userId: order.userId,
+            type: 'order_cancelled',
+            title: '订单已取消',
+            content: `您的订单 #${order.id}（${order.productName}）已取消，${order.pointsCost} 积分已退还`,
+            relatedId: order.id,
+            relatedType: 'order',
+        }).catch(e => console.error('创建取消订单通知失败:', e.original?.sqlMessage || e.message || e));
+
         res.json({ message: '订单已取消，积分已退还', order });
     } catch (error) {
         await transaction.rollback();

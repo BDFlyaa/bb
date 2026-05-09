@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { Op } from 'sequelize';
 import User from '../models/User.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { sendVerificationCode } from '../utils/mailer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -288,12 +289,16 @@ router.post('/email/send-code', authenticateToken, async (req, res) => {
       expire: Date.now() + 5 * 60 * 1000
     });
 
-    console.log(`[Email Mock] 向 ${email} 发送验证码: ${code}`);
-    
-    // 实际生产环境应在此调用 nodemailer 等发送邮件
-    // await sendRealEmail(email, code);
+    // 尝试发送真实邮件；若邮件服务未配置则降级打印到控制台
+    try {
+      await sendVerificationCode(email, code);
+      console.log(`[Email] 验证码已发送至 ${email}`);
+    } catch (mailErr) {
+      console.error('[Email] 发送失败，请检查 EMAIL_USER/EMAIL_PASS 配置:', mailErr.message);
+      console.log(`[Email Mock] 向 ${email} 发送验证码: ${code}`);
+    }
 
-    res.json({ message: '验证码已发送（请查看服务器控制台）' });
+    res.json({ message: '验证码已发送' });
   } catch (error) {
     console.error('发送验证码失败:', error);
     res.status(500).json({ message: '发送失败', detail: sqlDetail(error) });

@@ -28,3 +28,5 @@ server/node_modules
 
 server/uploads/
 .trae/
+playwright-report/
+test-results/

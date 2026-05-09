@@ -10,10 +10,13 @@
         <img src="../assets/images/logo.png" alt="PureOcean Logo" class="logo-img-small" />
         <span>PureOcean</span>
       </div>
-      <div class="mobile-user" @click="router.push('/app/profile')">
-        <img v-if="store.user.avatar" :src="store.user.avatar" alt="User Avatar" class="user-avatar-img-small" />
-        <div v-else class="avatar-placeholder">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      <div class="mobile-actions">
+        <NotificationBell />
+        <div class="mobile-user" @click="router.push('/app/profile')">
+          <img v-if="store.user.avatar" :src="store.user.avatar" alt="User Avatar" class="user-avatar-img-small" />
+          <div v-else class="avatar-placeholder">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
         </div>
       </div>
     </header>
@@ -24,15 +27,18 @@
         <img src="../assets/images/logo.png" alt="PureOcean Logo" class="logo-img" />
         <span>PureOcean</span>
       </div>
-      <div class="user-info" @click="goToProfile" title="点击编辑个人资料">
-        <div class="avatar">
-          <img v-if="store.user.avatar" :src="store.user.avatar" alt="User Avatar" class="user-avatar-img" />
-          <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      <div class="user-info-row">
+        <div class="user-info" @click="goToProfile" title="点击编辑个人资料">
+          <div class="avatar">
+            <img v-if="store.user.avatar" :src="store.user.avatar" alt="User Avatar" class="user-avatar-img" />
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
+          <div>
+            <div class="username">{{ store.user.name }}</div>
+            <div class="role-badge">{{ store.userDisplayRole }}</div>
+          </div>
         </div>
-        <div>
-          <div class="username">{{ store.user.name }}</div>
-          <div class="role-badge">{{ store.userDisplayRole }}</div>
-        </div>
+        <NotificationBell />
       </div>
       
       <nav class="nav-menu">
@@ -78,6 +84,12 @@
 
     <!-- AI 聊天助手 -->
     <AIChat />
+
+    <!-- 通知面板 -->
+    <NotificationPanel />
+
+    <!-- 全局 Toast -->
+    <GlobalToast />
   </div>
 </template>
 
@@ -86,9 +98,16 @@ import { ref } from 'vue';
 import { store } from '../stores';
 import { useRouter } from 'vue-router';
 import AIChat from '../pages/ai/AIChat.vue';
+import NotificationBell from '../components/notification/NotificationBell.vue';
+import NotificationPanel from '../components/notification/NotificationPanel.vue';
+import GlobalToast from '../components/common/GlobalToast.vue';
+import { useNotificationPolling } from '../composables/useNotificationPolling';
 
 const router = useRouter();
 const isMenuOpen = ref(false);
+
+// 启动通知轮询
+useNotificationPolling();
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value;
@@ -129,7 +148,15 @@ const handleLogout = () => {
   width: auto;
   object-fit: contain;
 }
-.user-info { display: flex; gap: 10px; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: background-color 0.3s; padding: 10px; border-radius: 8px; }
+.user-info-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.user-info { display: flex; gap: 10px; align-items: center; flex: 1; cursor: pointer; transition: background-color 0.3s; padding: 10px; border-radius: 8px; }
 .user-info:hover { background-color: rgba(255, 255, 255, 0.1); }
 .user-avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
 .nav-menu { flex: 1; }
@@ -175,7 +202,8 @@ const handleLogout = () => {
   .logo-img-small { height: 30px; }
   
   .mobile-user { cursor: pointer; }
-  .user-avatar-img-small { width: 30px; height: 30px; border-radius: 50%; }
+  .mobile-actions { display: flex; align-items: center; gap: 8px; }
+.user-avatar-img-small { width: 30px; height: 30px; border-radius: 50%; }
   .avatar-placeholder { width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; }
 
   .sidebar {

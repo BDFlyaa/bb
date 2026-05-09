@@ -1,6 +1,14 @@
 // src/stores/index.ts
 import { reactive } from 'vue';
 import { getMe, login as authLogin, register as authRegister } from '../api/auth';
+import {
+  getUnreadCount,
+  getNotifications,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  type NotificationItem,
+} from '../api/notification';
 
 // 角色映射
 const ROLE_MAP: Record<string, string> = {
@@ -14,6 +22,16 @@ export const store = reactive({
   isLoggedIn: !!localStorage.getItem('token'),
   token: localStorage.getItem('token') || '',
   user: JSON.parse(localStorage.getItem('user') || '{"id": 0, "name": "User", "role": "volunteer", "points": 0, "avatar": "", "bio": ""}'),
+
+  // ===== 通知系统 =====
+  unreadCount: 0,
+  notifications: [] as NotificationItem[],
+  notificationPanelVisible: false,
+  notificationLoading: false,
+  notificationEnabled: localStorage.getItem('notificationEnabled') !== 'false', // 默认开启
+
+  // ===== 全局 Toast =====
+  toasts: [] as { id: number; type: 'success' | 'error' | 'info'; message: string }[],
 
   // 是否为管理员
   get isAdmin() {
@@ -134,5 +152,91 @@ export const store = reactive({
   // 停止加载
   stopLoading() {
     this.isLoading = false;
-  }
+  },
+
+  // ===== 通知方法 =====
+
+  // 获取未读通知数量（轮询用）
+  async fetchUnreadCount() {
+    if (!this.isLoggedIn) return;
+    try {
+      const res = await getUnreadCount();
+      if (res.success) {
+        this.unreadCount = res.data.count;
+      }
+    } catch (e) {
+      // 静默失败，不打断用户
+    }
+  },
+
+  // 加载通知列表
+  async fetchNotifications(page = 1) {
+    this.notificationLoading = true;
+    try {
+      const res = await getNotifications({ page, pageSize: 20 });
+      if (res.success) {
+        this.notifications = res.data.list;
+      }
+    } catch (e) {
+      console.error('获取通知列表失败:', e);
+    } finally {
+      this.notificationLoading = false;
+    }
+  },
+
+  // 标记单条已读
+  async markNotificationRead(id: number) {
+    try {
+      await markAsRead(id);
+      const item = this.notifications.find(n => n.id === id);
+      if (item && !item.isRead) {
+        item.isRead = true;
+        this.unreadCount = Math.max(0, this.unreadCount - 1);
+      }
+    } catch (e) {
+      console.error('标记已读失败:', e);
+    }
+  },
+
+  // 全部标记已读
+  async markAllNotificationsRead() {
+    try {
+      await markAllAsRead();
+      this.notifications.forEach(n => { n.isRead = true; });
+      this.unreadCount = 0;
+    } catch (e) {
+      console.error('全部标记已读失败:', e);
+    }
+  },
+
+  // 删除通知
+  async removeNotification(id: number) {
+    const item = this.notifications.find(n => n.id === id);
+    try {
+      await deleteNotification(id);
+      this.notifications = this.notifications.filter(n => n.id !== id);
+      if (item && !item.isRead) {
+        this.unreadCount = Math.max(0, this.unreadCount - 1);
+      }
+    } catch (e) {
+      console.error('删除通知失败:', e);
+    }
+  },
+
+  // 开关通知面板
+  toggleNotificationPanel() {
+    this.notificationPanelVisible = !this.notificationPanelVisible;
+    if (this.notificationPanelVisible) {
+      this.fetchNotifications();
+    }
+  },
+
+  // ===== 全局 Toast =====
+  showToast(type: 'success' | 'error' | 'info', message: string) {
+    const id = Date.now();
+    this.toasts.push({ id, type, message });
+    setTimeout(() => {
+      this.toasts = this.toasts.filter(t => t.id !== id);
+    }, 3000);
+  },
 });

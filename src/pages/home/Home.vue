@@ -36,6 +36,13 @@
           <a href="#science" class="cta-btn secondary-cta">探索海洋百科</a>
         </div>
 
+        <Transition name="fade">
+          <div v-if="statsError" class="stats-error-banner">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            {{ statsError }}
+          </div>
+        </Transition>
+
         <div class="data-dashboard glass-panel">
           <div class="data-item">
             <span class="data-value">{{ oceanStats.plasticRemoved.toLocaleString() }}</span>
@@ -166,6 +173,7 @@ import {
   activeArticle,
   activeVideo,
   oceanStats,
+  statsError,
   openArticle,
   openVideo,
   closeModal,
@@ -181,5 +189,18 @@ onMounted(() => {
 
 <style scoped>
 @import "../../assets/styles/ocean-theme.css";
+
+.stats-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  margin-bottom: 16px;
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  border-radius: 8px;
+  color: #ff6b6b;
+  font-size: 0.9rem;
+}
 </style>
 <style scoped src="./Home.css"></style>

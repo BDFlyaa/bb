@@ -8,6 +8,7 @@ import CheckinRecord from '../models/CheckinRecord.js';
 import User from '../models/User.js';
 import RecycleStation from '../models/RecycleStation.js';
 import TraceRecord from '../models/TraceRecord.js';
+import Notification from '../models/Notification.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -510,6 +511,16 @@ router.post('/admin/approve/:id', authenticateToken, requireAdmin, async (req, r
             await targetUser.save();
         }
 
+        // 发送通知：审核通过
+        Notification.create({
+            userId: record.userId,
+            type: 'checkin_approved',
+            title: '打卡审核通过',
+            content: `您的${record.type}回收打卡已通过审核，获得 ${record.points} 积分`,
+            relatedId: record.id,
+            relatedType: 'checkin',
+        }).catch(e => console.error('创建审核通过通知失败:', e.original?.sqlMessage || e.message || e));
+
         // 创建溯源记录
         try {
             const today = new Date();
@@ -595,6 +606,16 @@ router.post('/admin/reject/:id', authenticateToken, requireAdmin, async (req, re
         // 更新状态为驳回
         record.status = 'rejected';
         await record.save();
+
+        // 发送通知：审核驳回
+        Notification.create({
+            userId: record.userId,
+            type: 'checkin_rejected',
+            title: '打卡申请被驳回',
+            content: reason ? `驳回原因：${reason}` : '您的打卡申请已被管理员驳回',
+            relatedId: record.id,
+            relatedType: 'checkin',
+        }).catch(e => console.error('创建驳回通知失败:', e.original?.sqlMessage || e.message || e));
 
         res.json({
             success: true,

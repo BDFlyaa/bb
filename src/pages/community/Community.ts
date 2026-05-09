@@ -412,7 +412,8 @@ export const cancelActivity = (task: any) => {
 
 export const toggleLike = async (post: Post) => {
   try {
-    const res = post.isLiked ? await unlikePost(post.id) : await likePost(post.id);
+    const username = store.user.name || '志愿者';
+    const res = post.isLiked ? await unlikePost(post.id) : await likePost(post.id, username);
     post.likes = res.likes;
     post.isLiked = !post.isLiked;
 

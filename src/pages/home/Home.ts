@@ -18,6 +18,9 @@ const activeVideo = ref({
   videoUrl: ''
 });
 
+// 统计数据加载状态
+const statsError = ref('');
+
 // 统计数据
 const oceanStats = reactive({
   plasticRemoved: 0,
@@ -51,12 +54,9 @@ const fetchAndAnimateStats = async () => {
     } else {
       throw new Error(response.message || '获取数据失败');
     }
-  } catch (error) {
-    console.error('获取统计数据失败:', error);
-    // 降级使用默认值
-    animateValue('plasticRemoved', 0, 15420, 2000);
-    animateValue('volunteers', 0, 1284, 1500);
-    animateValue('speciesSaved', 0, 42, 2500);
+  } catch (e) {
+    console.error('获取统计数据失败:', e);
+    statsError.value = '统计数据暂时无法加载，请稍后再试';
   }
 };
 
@@ -102,9 +102,10 @@ export {
   activeArticle,
   activeVideo,
   oceanStats,
+  statsError,
   openArticle,
   openVideo,
   closeModal,
   fetchAndAnimateStats,
-  getImageUrl // 导出辅助函数
+  getImageUrl
 };

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>PureOcean 数据库 Chen 氏 ER 图</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #021B32;
+  color: #fff;
+  font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  padding: 30px;
+}
+h1 {
+  text-align: center;
+  font-size: 28px;
+  margin-bottom: 6px;
+  background: linear-gradient(135deg, #00e5ff, #00ff9d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.subtitle {
+  text-align: center;
+  color: rgba(255,255,255,0.5);
+  font-size: 14px;
+  margin-bottom: 30px;
+}
+#diagram {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  justify-content: center;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.entity-card {
+  background: rgba(255,255,255,0.06);
+  border: 2px solid rgba(0, 229, 255, 0.5);
+  border-radius: 12px;
+  padding: 20px;
+  width: 280px;
+  position: relative;
+}
+.entity-card::before {
+  content: attr(data-name);
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #021B32;
+  padding: 0 14px;
+  font-weight: 700;
+  font-size: 16px;
+  color: #00e5ff;
+  white-space: nowrap;
+}
+.attrs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.attr {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.attr.pk {
+  border-color: #ffd700;
+  color: #ffd700;
+}
+.attr.pk::after {
+  content: 'PK';
+  font-size: 9px;
+  color: #ffd700;
+  font-weight: 700;
+  margin-left: 2px;
+}
+.attr.fk {
+  border-style: dashed;
+  border-color: #ff79c6;
+  color: #ff79c6;
+}
+.attr.fk::after {
+  content: 'FK';
+  font-size: 9px;
+  color: #ff79c6;
+  font-weight: 700;
+  margin-left: 2px;
+}
+.attr.fkpk {
+  border-color: #ffaa00;
+  border-style: dashed;
+  color: #ffaa00;
+}
+.attr.fkpk::after {
+  content: 'FK/PK';
+  font-size: 9px;
+  color: #ffaa00;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.relations {
+  width: 100%;
+  max-width: 1600px;
+  margin: 20px auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  justify-content: center;
+}
+.rel-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.rel-diamond {
+  display: inline-block;
+  width: 20px; height: 20px;
+  background: rgba(0, 229, 255, 0.2);
+  border: 2px solid #00e5ff;
+  transform: rotate(45deg);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+.rel-label {
+  color: #00e5ff;
+  font-weight: 600;
+  font-size: 13px;
+}
+</style>
+</head>
+<body>
+  <h1>PureOcean 数据库 Chen 氏 ER 图</h1>
+  <p class="subtitle">矩形 = 实体 · 椭圆 = 属性 · PK = 🟡 主键 · FK = 🟣 外键</p>
+
+  <div id="diagram"></div>
+
+  <h2 style="text-align:center;color:rgba(255,255,255,0.4);font-size:16px;margin:40px 0 20px">━━ 实体关联关系 ━━</h2>
+  <div class="relations" id="relations"></div>
+
+<script>
+const entities = [
+  {
+    name: 'User',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '用户名', type: '' },
+      { label: '邮箱', type: '' },
+      { label: '密码', type: '' },
+      { label: '角色', type: '' },
+      { label: '积分', type: '' },
+      { label: '昵称', type: '' },
+      { label: '头像', type: '' },
+      { label: '简介', type: '' },
+      { label: '禁言截止', type: '' },
+    ]
+  },
+  {
+    name: 'Notification',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '用户ID', type: 'fk' },
+      { label: '类型', type: '' },
+      { label: '标题', type: '' },
+      { label: '内容', type: '' },
+      { label: '已读标记', type: '' },
+      { label: '关联业务ID', type: '' },
+      { label: '关联业务类型', type: '' },
+    ]
+  },
+  {
+    name: 'CheckinRecord',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '用户ID', type: 'fk' },
+      { label: '站点ID', type: 'fk' },
+      { label: '回收类型', type: '' },
+      { label: '重量', type: '' },
+      { label: '积分', type: '' },
+      { label: '打卡方式', type: '' },
+      { label: '图片', type: '' },
+      { label: '审核状态', type: '' },
+    ]
+  },
+  {
+    name: 'TraceRecord',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '批次号', type: '' },
+      { label: '打卡记录ID', type: 'fk' },
+      { label: '用户ID', type: 'fk' },
+      { label: '站点ID', type: 'fk' },
+      { label: '回收类型', type: '' },
+      { label: '重量', type: '' },
+      { label: '溯源状态', type: '' },
+      { label: '哈希校验码', type: '' },
+      { label: '来源名称', type: '' },
+    ]
+  },
+  {
+    name: 'RecycleStation',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '名称', type: '' },
+      { label: '地址', type: '' },
+      { label: '经度', type: '' },
+      { label: '纬度', type: '' },
+      { label: '运行状态', type: '' },
+      { label: '状态说明', type: '' },
+    ]
+  },
+  {
+    name: 'StationAudit',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '用户ID', type: 'fk' },
+      { label: '名称', type: '' },
+      { label: '地址', type: '' },
+      { label: '经度', type: '' },
+      { label: '纬度', type: '' },
+      { label: '审核状态', type: '' },
+      { label: '备注', type: '' },
+    ]
+  },
+  {
+    name: 'StationReport',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '用户ID', type: 'fk' },
+      { label: '站点ID', type: 'fk' },
+      { label: '问题类型', type: '' },
+      { label: '描述', type: '' },
+      { label: '处理状态', type: '' },
+    ]
+  },
+  {
+    name: 'Product',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '名称', type: '' },
+      { label: '积分价格', type: '' },
+      { label: '图标', type: '' },
+      { label: '描述', type: '' },
+      { label: '分类', type: '' },
+      { label: '库存', type: '' },
+      { label: '上下架状态', type: '' },
+    ]
+  },
+  {
+    name: 'Order',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '用户ID', type: 'fk' },
+      { label: '商品ID', type: 'fk' },
+      { label: '商品名', type: '' },
+      { label: '商品图标', type: '' },
+      { label: '消耗积分', type: '' },
+      { label: '订单状态', type: '' },
+      { label: '地址', type: '' },
+      { label: '电话', type: '' },
+    ]
+  },
+  {
+    name: 'Post',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '发布人', type: '' },
+      { label: '内容', type: '' },
+      { label: '图片', type: '' },
+      { label: '点赞数', type: '' },
+      { label: '评论(JSON)', type: '' },
+    ]
+  },
+  {
+    name: 'Task',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '标题', type: '' },
+      { label: '地点', type: '' },
+      { label: '日期', type: '' },
+      { label: '图片', type: '' },
+      { label: '标签', type: '' },
+    ]
+  },
+  {
+    name: 'TaskCompletion',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '用户ID', type: 'fk' },
+      { label: '任务ID', type: '' },
+      { label: '获得积分', type: '' },
+      { label: '完成时间', type: '' },
+    ]
+  },
+  {
+    name: 'TaskParticipation',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '任务ID', type: '' },
+      { label: '用户名', type: '' },
+      { label: '状态', type: '' },
+    ]
+  },
+  {
+    name: 'Ranking',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '名称', type: '' },
+      { label: '重量', type: '' },
+      { label: '统计周期', type: '' },
+    ]
+  },
+  {
+    name: 'Inventory',
+    attrs: [
+      { label: 'id', type: 'pk' },
+      { label: '物资名称', type: '' },
+      { label: '当前数量', type: '' },
+      { label: '最大容量', type: '' },
+      { label: '预警阈值', type: '' },
+      { label: '单位', type: '' },
+      { label: '最近补货', type: '' },
+    ]
+  },
+];
+
+const relations = [
+  { left: 'User', diamond: '拥有', right: 'Notification', card: '1:N' },
+  { left: 'User', diamond: '产生', right: 'CheckinRecord', card: '1:N' },
+  { left: 'User', diamond: '下单', right: 'Order', card: '1:N' },
+  { left: 'User', diamond: '发布', right: 'Post', card: '1:N' },
+  { left: 'User', diamond: '申请', right: 'StationAudit', card: '1:N' },
+  { left: 'User', diamond: '上报', right: 'StationReport', card: '1:N' },
+  { left: 'CheckinRecord', diamond: '生成', right: 'TraceRecord', card: '1:1' },
+  { left: 'RecycleStation', diamond: '关联', right: 'CheckinRecord', card: '1:N' },
+  { left: 'RecycleStation', diamond: '关联', right: 'StationReport', card: '1:N' },
+  { left: 'RecycleStation', diamond: '涉及', right: 'StationAudit', card: '1:N' },
+  { left: 'Product', diamond: '兑换为', right: 'Order', card: '1:N' },
+  { left: 'Task', diamond: '参与', right: 'TaskParticipation', card: '1:N' },
+];
+
+const diagram = document.getElementById('diagram');
+entities.forEach(e => {
+  const card = document.createElement('div');
+  card.className = 'entity-card';
+  card.dataset.name = e.name;
+  const wrap = document.createElement('div');
+  wrap.className = 'attrs';
+  e.attrs.forEach(a => {
+    const span = document.createElement('span');
+    span.className = 'attr';
+    if (a.type === 'pk') span.classList.add('pk');
+    else if (a.type === 'fk') span.classList.add('fk');
+    else if (a.type === 'fkpk') span.classList.add('fkpk');
+    span.textContent = a.label;
+    wrap.appendChild(span);
+  });
+  card.appendChild(wrap);
+  diagram.appendChild(card);
+});
+
+const relContainer = document.getElementById('relations');
+relations.forEach(r => {
+  const div = document.createElement('div');
+  div.className = 'rel-card';
+  div.innerHTML = `
+    <span style="color:#aaa">${r.left}</span>
+    <span style="color:#666">${r.card || ''}</span>
+    <span class="rel-diamond"></span>
+    <span class="rel-label">${r.diamond}</span>
+    <span class="rel-diamond"></span>
+    <span style="color:#666">${r.card ? (r.card.replace('1:', 'N:').replace(':N', ':1')) : ''}</span>
+    <span style="color:#aaa">${r.right}</span>
+  `;
+  relContainer.appendChild(div);
+});
+</script>
+</body>
+</html>

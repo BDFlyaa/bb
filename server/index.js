@@ -14,6 +14,7 @@ import checkinRoutes from './routes/checkin.js';
 import classifyRoutes from './routes/classify.js';
 import traceabilityRoutes from './routes/traceability.js';
 import aiRoutes from './routes/ai.js';
+import notificationRoutes from './routes/notification.js';
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.use('/api/checkin', checkinRoutes);
 app.use('/api/classify', classifyRoutes);
 app.use('/api/trace', traceabilityRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 
 // 根路由测试

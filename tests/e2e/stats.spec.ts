@@ -53,13 +53,14 @@ test.describe('Stats & Profile Module E2E', () => {
     const newBio = `这是测试简介_${Date.now()}`;
     await page.fill('textarea[placeholder="介绍一下你自己..."]', newBio);
     
-    // 监听可能出现的对话框
-    page.on('dialog', async dialog => {
+    // 注册对话框处理
+    page.once('dialog', async dialog => {
       await dialog.accept();
     });
 
     // 提交修改
     await page.click('button:has-text("保存修改")');
+    await page.waitForTimeout(1000);
     
     // 验证修改成功 (在页面上刷新显示)
     await expect(page.locator('.banner-bio')).toContainText(newBio);

@@ -65,8 +65,8 @@ router.get('/home', async (req, res) => {
         });
         const plasticRemoved = Math.round(parseFloat(totalResult?.dataValues?.totalWeight || 0));
 
-        // 2. 志愿者人数 (Count of Users)
-        const volunteers = await User.count();
+        // 2. 志愿者人数 (只统计志愿者角色)
+        const volunteers = await User.count({ where: { role: 'volunteer' } });
 
         // 3. 受护物种 (Species Saved)
         // 算法：每回收 300kg 塑料，大致可视为拯救/保护了 1 种受威胁海洋物种
@@ -568,8 +568,13 @@ router.get('/export', authenticateToken, async (req, res) => {
             return res.status(403).json({ message: '仅管理员可导出数据' });
         }
 
+        // 支持按审核状态筛选，默认导出已通过记录
+        const statusFilter = req.query.status || 'approved';
+        const validStatuses = ['pending', 'approved', 'rejected'];
+        const status = validStatuses.includes(statusFilter) ? statusFilter : 'approved';
+
         const records = await CheckinRecord.findAll({
-            where: { status: 'approved' },
+            where: { status },
             include: [
                 { model: User, as: 'user', attributes: ['username'] },
                 { model: RecycleStation, as: 'station', attributes: ['name'] }
@@ -579,7 +584,8 @@ router.get('/export', authenticateToken, async (req, res) => {
 
         // 构建 CSV
         const BOM = '\uFEFF'; // UTF-8 BOM，确保 Excel 正确识别中文
-        const header = '日期,用户,站点,类型,重量(kg),积分\n';
+        const header = '日期,用户,站点,类型,重量(kg),积分,审核状态\n';
+        const statusLabel = { pending: '待审核', approved: '已通过', rejected: '已驳回' };
         const rows = records.map(r => {
             const date = new Date(r.createdAt).toLocaleString('zh-CN');
             const user = r.user?.username || '匿名用户';
@@ -598,14 +604,15 @@ router.get('/export', authenticateToken, async (req, res) => {
                 escapeCsv(station),
                 escapeCsv(r.type),
                 r.weight,
-                r.points
+                r.points,
+                statusLabel[r.status] || r.status
             ].join(',');
         }).join('\n');
 
         const csv = BOM + header + rows;
 
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename=recycle_report.csv');
+        res.setHeader('Content-Disposition', `attachment; filename=recycle_report_${status}.csv`);
         res.send(csv);
     } catch (error) {
         console.error('导出数据失败:', error);

@@ -201,3 +201,80 @@ export const changePassword = async () => {
     passwordForm.confirmNewPassword = '';
   }
 };
+
+// ===== 邮箱绑定 =====
+
+export const emailForm = reactive({
+  email: '',
+  code: '',
+});
+
+export const isSendingCode = ref(false);
+export const isBindingEmail = ref(false);
+export const codeCountdown = ref(0);
+
+let countdownTimer: ReturnType<typeof setInterval> | null = null;
+
+function startCountdown() {
+  codeCountdown.value = 60;
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = setInterval(() => {
+    codeCountdown.value--;
+    if (codeCountdown.value <= 0) {
+      if (countdownTimer) clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+  }, 1000);
+}
+
+export const sendEmailCode = async () => {
+  if (!emailForm.email.trim() || codeCountdown.value > 0) return;
+
+  if (!store.token) {
+    alert('请先登录');
+    return;
+  }
+
+  isSendingCode.value = true;
+  try {
+    await axios.post('/api/auth/email/send-code', { email: emailForm.email.trim() }, {
+      headers: { Authorization: `Bearer ${store.token}` },
+    });
+    startCountdown();
+    alert('验证码已发送，请查收邮件');
+  } catch (error: unknown) {
+    alert(axiosErrText(error) || '发送验证码失败，请稍后重试');
+  } finally {
+    isSendingCode.value = false;
+  }
+};
+
+export const bindEmail = async () => {
+  if (!emailForm.email.trim() || !emailForm.code.trim()) {
+    alert('请填写邮箱和验证码');
+    return;
+  }
+
+  if (!store.token) {
+    alert('请先登录');
+    return;
+  }
+
+  isBindingEmail.value = true;
+  try {
+    const { data } = await axios.post('/api/auth/email/bind', {
+      email: emailForm.email.trim(),
+      code: emailForm.code.trim(),
+    }, {
+      headers: { Authorization: `Bearer ${store.token}` },
+    });
+    alert(data.message || '邮箱绑定成功');
+    emailForm.code = '';
+    // 刷新用户信息
+    await initProfile();
+  } catch (error: unknown) {
+    alert(axiosErrText(error) || '绑定失败，请检查验证码是否正确');
+  } finally {
+    isBindingEmail.value = false;
+  }
+};

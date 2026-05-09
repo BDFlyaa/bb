@@ -66,7 +66,7 @@ test.describe('Community & Tasks Module E2E', () => {
       // 如果已经参加，测试退出逻辑
       await btn.click();
       // 等待自定义确认弹窗并确定
-      await page.click('.modal-footer .btn-primary:has-text("确定")');
+      await page.click('.modal-actions .btn-primary:has-text("确定")');
       await expect(btn).toContainText('报名参加', { timeout: 10000 });
     }
   });

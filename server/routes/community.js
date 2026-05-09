@@ -4,6 +4,7 @@ import Post from '../models/Post.js';
 import Ranking from '../models/Ranking.js';
 import TaskParticipation from '../models/TaskParticipation.js';
 import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -233,6 +234,23 @@ router.post('/feed/:id/like', async (req, res) => {
     if (post) {
       post.likes += 1;
       await post.save();
+
+      // 发送通知给动态作者（点赞者不是作者本人时）
+      const likerUsername = req.body.username || req.query.username;
+      if (likerUsername && post.user && likerUsername !== post.user) {
+        const postOwner = await User.findOne({ where: { username: post.user } });
+        if (postOwner) {
+          Notification.create({
+            userId: postOwner.id,
+            type: 'community_like',
+            title: '有人点赞了你的动态',
+            content: `${likerUsername} 赞了你的动态`,
+            relatedId: post.id,
+            relatedType: 'community',
+          }).catch(e => console.error('创建点赞通知失败:', e.original?.sqlMessage || e.message || e));
+        }
+      }
+
       res.json(post);
     } else {
       res.status(404).json({ message: 'Post not found' });
@@ -310,6 +328,21 @@ router.post('/feed/:id/comments', async (req, res) => {
     const currentComments = post.comments || [];
     post.comments = [...currentComments, newComment];
     await post.save();
+
+    // 发送通知给动态作者（评论者不是作者本人时）
+    if (post.user && user !== post.user) {
+      const postOwner = await User.findOne({ where: { username: post.user } });
+      if (postOwner) {
+        Notification.create({
+          userId: postOwner.id,
+          type: 'community_comment',
+          title: '有人评论了你的动态',
+          content: `${user}：${content.length > 60 ? content.slice(0, 60) + '...' : content}`,
+          relatedId: post.id,
+          relatedType: 'community',
+        }).catch(e => console.error('创建评论通知失败:', e.original?.sqlMessage || e.message || e));
+      }
+    }
 
     res.status(201).json(newComment);
   } catch (error) {
