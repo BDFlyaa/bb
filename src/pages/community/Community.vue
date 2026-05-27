@@ -238,7 +238,6 @@
               <img :src="post.image" @click="logic.openImagePreview(post.image)" />
             </div>
             <div class="mod-footer">
-              <button class="btn-sm btn-success">审核通过</button>
               <button class="btn-sm btn-warning" @click="muteUser(post.user)">禁言用户</button>
               <button class="btn-sm btn-danger" @click="logic.deletePost(post.id)">删除违规</button>
             </div>
@@ -411,12 +410,47 @@
         </div>
       </div>
     </div>
+
+    <!-- 禁言时长弹窗 -->
+    <div v-if="showMuteModal" class="modal-overlay" @click="showMuteModal = false">
+      <div class="glass-panel modal-card mute-modal" @click.stop>
+        <h3>禁言用户：{{ muteTargetUser }}</h3>
+        <div class="mute-duration-section">
+          <label class="mute-label">选择禁言时长</label>
+          <div class="duration-presets">
+            <button
+              v-for="opt in durationOptions"
+              :key="opt.value"
+              class="btn-sm"
+              :class="selectedDuration === opt.value ? 'btn-primary' : 'btn-ghost'"
+              @click="selectedDuration = opt.value"
+            >{{ opt.label }}</button>
+          </div>
+          <div class="custom-duration-row">
+            <span class="or-divider">或自定义</span>
+            <input
+              v-model="customDurationInput"
+              class="custom-input"
+              placeholder="如: 2h, 3d"
+              @input="onCustomDurationInput"
+            />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-ghost" @click="showMuteModal = false">取消</button>
+          <button class="btn-primary" :class="muteLoading ? '' : 'btn-warning'" @click="confirmMute" :disabled="muteLoading">
+            {{ muteLoading ? '处理中...' : '确认禁言' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { store } from '../../stores';
+import { muteUser as muteUserApi } from '../../api/community';
 import * as logic from './Community.ts';
 import './Community.css';
 
@@ -427,8 +461,50 @@ onMounted(() => {
   logic.initCommunity();
 });
 
-// 管理员特有方法（目前逻辑主要在 .ts 中）
-const muteUser = (user: string) => alert(`用户 ${user} 已被禁言 24 小时`);
+// 禁言时长弹窗
+const showMuteModal = ref(false);
+const muteTargetUser = ref('');
+const selectedDuration = ref('24h');
+const customDurationInput = ref('');
+const muteLoading = ref(false);
+
+const durationOptions = [
+  { label: '1 小时', value: '1h' },
+  { label: '6 小时', value: '6h' },
+  { label: '24 小时', value: '24h' },
+  { label: '3 天', value: '3d' },
+  { label: '7 天', value: '7d' },
+  { label: '30 天', value: '30d' },
+];
+
+const onCustomDurationInput = () => {
+  selectedDuration.value = customDurationInput.value;
+};
+
+const muteUser = (username: string) => {
+  muteTargetUser.value = username;
+  selectedDuration.value = '24h';
+  customDurationInput.value = '';
+  showMuteModal.value = true;
+};
+
+const confirmMute = async () => {
+  muteLoading.value = true;
+  try {
+    const duration = customDurationInput.value || selectedDuration.value;
+    const res = await muteUserApi({ username: muteTargetUser.value, duration });
+    if (res.success) {
+      showMuteModal.value = false;
+      store.showToast('success', `用户 ${muteTargetUser.value} 已被禁言`);
+    } else {
+      store.showToast('error', res.message || '禁言失败');
+    }
+  } catch (error: any) {
+    store.showToast('error', error.response?.data?.message || '禁言失败，请稍后再试');
+  } finally {
+    muteLoading.value = false;
+  }
+};
 
 </script>
 

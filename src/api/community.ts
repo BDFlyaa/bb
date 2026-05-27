@@ -107,3 +107,7 @@ export const addPostComment = (postId: number, body: { user: string; content: st
 export const deleteFeedPost = (postId: number, params?: { user?: string; isAdmin?: string | boolean }) => {
   return request.delete<any, { message: string }>(`/community/feed/${postId}`, { params });
 };
+
+export const muteUser = (body: { username: string; duration?: string }) => {
+  return request.post<any, { success: boolean; message: string; mutedUntil?: string }>('/community/admin/mute-user', body);
+};

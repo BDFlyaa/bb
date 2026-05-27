@@ -892,3 +892,60 @@
     font-size: 13px;
   }
 }
+/* 禁言时长弹窗 */
+.mute-modal h3 {
+  margin: 0 0 20px 0;
+  color: #ffc107;
+  font-size: 1.2rem;
+}
+
+.mute-duration-section {
+  margin-bottom: 24px;
+}
+
+.mute-label {
+  display: block;
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-bottom: 14px;
+}
+
+.duration-presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.duration-presets .btn-sm {
+  padding: 10px 8px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.custom-duration-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.or-divider {
+  color: #666;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.custom-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.custom-input:focus {
+  border-color: #ffc107;
+}

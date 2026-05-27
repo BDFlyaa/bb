@@ -120,14 +120,14 @@ export function useMapLogic() {
       securityJsCode: '7b7509159aefd262b8ec05227c8e19da',
     };
 
-    // 🚀 优化1: 预加载数据（与地图SDK加载并行）
+    //  预加载数据（与地图SDK加载并行）
     preloadData();
     loadAdminData();
 
     AMapLoader.load({
       key: 'dc05c7a1f7f1312191532da4e379f188',
       version: '2.0',
-      // 🚀 优化2: 精简插件，只加载必需的
+      //   精简插件，只加载必需的
       plugins: [
         'AMap.Marker',
         'AMap.InfoWindow',
@@ -138,7 +138,7 @@ export function useMapLogic() {
     }).then((AMap) => {
       (window as any).AMap = AMap;
       map = new AMap.Map('container', {
-        viewMode: '2D', // 🚀 优化3: 2D模式渲染更快
+        viewMode: '2D', //  2D模式渲染更快
         zoom: 13,
         center: [110.359377, 21.270708], // 湛江
         theme: 'amap://styles/darkblue'
@@ -146,7 +146,7 @@ export function useMapLogic() {
 
       map.addControl(new AMap.ToolBar({ position: 'RT' }));
 
-      // 🚀 优化4: 延迟加载非必需插件
+      //  延迟加载非必需插件
       setTimeout(() => {
         AMapLoader.load({
           key: 'dc05c7a1f7f1312191532da4e379f188',
@@ -156,7 +156,7 @@ export function useMapLogic() {
           map.addControl(new AMap.Scale());
           placeSearch = new AMap.PlaceSearch({ map: map });
 
-          // 🚀 优化5: 定位改为后台静默执行
+          //  定位改为后台静默执行
           const geolocation = new AMap.Geolocation({
             enableHighAccuracy: true,
             timeout: 10000,
@@ -186,7 +186,7 @@ export function useMapLogic() {
 
       geocoder = new AMap.Geocoder({ city: '全国' });
 
-      // 🚀 优化6: 使用预加载的缓存数据
+      // 使用预加载的缓存数据
       fetchStations(true);
 
       map.on('click', (e: any) => {

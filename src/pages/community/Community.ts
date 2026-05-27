@@ -453,7 +453,7 @@ export const deletePost = async (postId: number) => {
     '确定要永久删除这条动态吗？此操作不可撤销。',
     async () => {
       try {
-        await deleteFeedPost(postId, { user: store.user.name });
+        await deleteFeedPost(postId, { user: store.user.name, isAdmin: true });
         // 从列表中移除
         feed.value = feed.value.filter(p => p.id !== postId);
         showToast('动态已删除');

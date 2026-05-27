@@ -545,6 +545,11 @@
   background: rgba(0, 229, 255, 0.05);
 }
 
+.form-item select option {
+  background: #1a2634;
+  color: #fff;
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;
